@@ -1,0 +1,47 @@
+let Incidents = SecurityIncident
+    | extend SystemAlertId = iff(isempty(AlertIds), todynamic('[{"dummy" : ""}]'), todynamic(AlertIds)) 
+    | mvexpand kind=array SystemAlertId
+    | project TimeGenerated, Title, IncidentNumber, tostring(SystemAlertId);
+let Ents = SecurityAlert
+    | extend Entities = iff(isempty(Entities), todynamic('[{"dummy" : ""}]'), todynamic(Entities)) 
+    | mvexpand kind=array Entities
+    | summarize
+        arg_max(TimeGenerated, *),
+        Directory = make_set(Entities.Directory),
+        Name = make_set(Entities.Name),
+        HostName = make_set(Entities.HostName),
+        IpAddress = make_set(Entities.Address),
+        AppId = make_set(Entities.AppId),
+        Location = make_set(Entities.Location),
+        Url = make_set(Entities.Url),
+        count()
+        by SystemAlertId
+    | project
+        TimeGenerated,
+        Directory,
+        Name,
+        HostName,
+        IpAddress,
+        Url,
+        AppId,
+        Location,
+        SystemAlertId;
+SecurityAlert
+| summarize arg_max(TimeGenerated, *) by tostring(SystemAlertId)
+| join kind= inner (Incidents) on SystemAlertId
+| join kind= inner (Ents) on SystemAlertId
+| sort by TimeGenerated desc
+| extend TimeGenerated = format_datetime(TimeGenerated, 'MM-dd-yy [hh:mm tt]')
+| project-away SystemAlertId1, SystemAlertId2
+| project
+    TimeGenerated,
+    Title,
+    IncidentNumber,
+    Directory,
+    Name,
+    HostName,
+    IpAddress,
+    AppId,
+    Location,
+    Url
+| summarize arg_max(TimeGenerated,*) by Title
