@@ -1,0 +1,15 @@
+let ErrorCodes = _GetWatchlist("SigninErrorCodes") | project Error, Description;
+let HighBlast = _GetWatchlist("HB") | project User_Principal_Name;
+let timeframe = ago(90d);
+let threshhold = 3;
+SigninLogs
+| where TimeGenerated > timeframe
+| where UserPrincipalName in ((HighBlast))
+| where ResultType in ((ErrorCodes))
+| extend Successful = tostring(parse_json(AuthenticationDetails)[0].succeeded)
+| where Successful == "false"
+| project TimeGenerated, UserPrincipalName, ResultType
+| join kind=leftouter (ErrorCodes)
+on $left.ResultType == $right.Error
+| summarize Failures = count(), max(TimeGenerated) by UserPrincipalName, Description
+| where Failures > threshhold
