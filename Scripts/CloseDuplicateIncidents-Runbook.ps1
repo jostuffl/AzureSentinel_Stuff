@@ -9,7 +9,6 @@
     Such as "Unfamiliar Sign-in Properties - <USERUPN>" - Where USERUPN would be the upn of the user that triggered the alert.
     You can add custom data to your Alert Titles in the Analytic Rule under Custom Details.
 
-    While this script was meant to be used as an Azure Runbook set on a schedule, it can be used standalone as well.
     The script currently closes the Incidents as "BenignPositive" and "SuspiciousButExpected". Feel free to change this to feet your needs.
     It also only looks at incidents within the last 1 day.
 #>
