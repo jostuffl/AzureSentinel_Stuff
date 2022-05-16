@@ -22,31 +22,334 @@
     "type": "string"
 }
 },
-"variables": {},
+"variables": {
+"azuremonitorlogsConnectionName": "[concat('azuremonitorlogs-', parameters('PlaybookName'))]"
+},
 "resources": [
 {
-"properties": {
-    "provisioningState": "Succeeded",
-    "state": "Enabled",
-    "definition": {
-        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
-        "contentVersion": "1.0.0.0",
-    "parameters": {},
-    "triggers": {
-        "manual": {
-            "type": "Request",
-            "kind": "Http",
-            "inputs": {
-                "schema": {
-                    "properties": {
-                        "InternetMessageId": {
-                            "type": "string"
+    "properties": {
+        "provisioningState": "Succeeded",
+        "state": "Enabled",
+        "definition": {
+            "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+            "contentVersion": "1.0.0.0",
+            "parameters": {
+                "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "manual": {
+                "type": "Request",
+                "kind": "Http",
+                "inputs": {
+                    "schema": {
+                        "properties": {
+                            "Internal": {
+                                "type": "string"
+                            },
+                            "InternetMessageId": {
+                                "type": "string"
+                            },
+                            "Sender": {
+                                "type": "string"
+                            },
+                            "Subject": {
+                                "type": "string"
+                            }
                         },
-                        "Sender": {
-                            "type": "string"
+                        "type": "object"
+                    }
+                }
+            }
+        },
+        "actions": {
+            "ForEach-EventBody": {
+                "foreach": "@body('ParseQueryEvents')",
+                "actions": {
+                    "HTTP-Get-MessageID": {
+                        "runAfter": {
+                            "Parse-EventBody": [
+                                "Succeeded"
+                            ]
                         },
-                        "Subject": {
-                            "type": "string"
+                        "type": "Http",
+                        "inputs": {
+                            "authentication": {
+                                "audience": "https://graph.microsoft.com",
+                                "type": "ManagedServiceIdentity"
+                            },
+                            "method": "GET",
+                            "uri": "https://graph.microsoft.com/v1.0/users/@{body('Parse-EventBody')?['RecipientEmailAddress']}/messages?$filter=internetMessageId eq '@{body('Parse-EventBody')?['InternetMessageId']}'"
+                        }
+                    },
+                    "IfStatusCode200": {
+                        "actions": {
+                            "ForEachValue": {
+                                "foreach": "@body('Parse-Get-MessageID')?['value']",
+                                "actions": {
+                                    "IfInternetMessageId-Exist": {
+                                        "actions": {
+                                            "If-MsgIDs-Not-Contain-Id": {
+                                                "actions": {
+                                                    "Add-Id-To-MsgIDs": {
+                                                    "runAfter": {},
+                                                    "type": "AppendToArrayVariable",
+                                                    "inputs": {
+                                                        "name": "MsgIDs",
+                                                        "value": "@items('ForEachValue')?['id']"
+                                                    }
+                                                },
+                                                "Delete-Email-on-MsgId-and-User": {
+                                                    "runAfter": {
+                                                        "Add-Id-To-MsgIDs": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "Http",
+                                                    "inputs": {
+                                                        "authentication": {
+                                                            "audience": "https://graph.microsoft.com",
+                                                            "type": "ManagedServiceIdentity"
+                                                        },
+                                                        "method": "DELETE",
+                                                        "uri": "https://graph.microsoft.com/v1.0/users/@{body('Parse-EventBody')?['RecipientEmailAddress']}/messages/@{body('Parse-Get-MessageID')?['value'][0]['id']}"
+                                                    }
+                                                }
+                                            },
+                                        "runAfter": {},
+                                        "expression": {
+                                            "and": [
+                                                {
+                                                    "not": {
+                                                        "contains": [
+                                                            "@variables('MsgIDs')",
+                                                            "@items('ForEachValue')?['id']"
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "type": "If"
+                                    }
+                                },
+                            "runAfter": {},
+                            "expression": {
+                                "and": [
+                                    {
+                                        "startsWith": [
+                                            "@items('ForEachValue')?['internetMessageId']",
+                                            "<"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "type": "If"
+                        }
+                    },
+                    "runAfter": {
+                        "Parse-Get-MessageID": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Foreach"
+                },
+                "Parse-Get-MessageID": {
+                "runAfter": {},
+                "type": "ParseJson",
+                "inputs": {
+                    "content": "@body('HTTP-Get-MessageID')",
+                    "schema": {
+                        "properties": {
+                            "@@odata.context": {
+                                "type": "string"
+                            },
+                            "value": {
+                                "items": {
+                                    "properties": {
+                                        "@@odata.etag": {
+                                            "type": "string"
+                                        },
+                                        "bccRecipients": {
+                                            "type": "array"
+                                        },
+                                        "body": {
+                                            "properties": {
+                                                "content": {
+                                                    "type": "string"
+                                                },
+                                                "contentType": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "bodyPreview": {
+                                            "type": "string"
+                                        },
+                                        "categories": {
+                                            "type": "array"
+                                        },
+                                        "ccRecipients": {
+                                            "type": "array"
+                                        },
+                                        "changeKey": {
+                                            "type": "string"
+                                        },
+                                        "conversationId": {
+                                            "type": "string"
+                                        },
+                                        "conversationIndex": {
+                                            "type": "string"
+                                        },
+                                        "createdDateTime": {
+                                            "type": "string"
+                                        },
+                                        "flag": {
+                                            "properties": {
+                                                "flagStatus": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "from": {
+                                            "properties": {
+                                                "emailAddress": {
+                                                    "properties": {
+                                                        "address": {
+                                                            "type": "string"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "hasAttachments": {
+                                            "type": "boolean"
+                                        },
+                                        "id": {
+                                            "type": "string"
+                                        },
+                                        "importance": {
+                                            "type": "string"
+                                        },
+                                        "inferenceClassification": {
+                                            "type": "string"
+                                        },
+                                        "internetMessageId": {
+                                            "type": "string"
+                                        },
+                                    "isDeliveryReceiptRequested": {},
+                                    "isDraft": {
+                                        "type": "boolean"
+                                    },
+                                    "isRead": {
+                                        "type": "boolean"
+                                    },
+                                    "isReadReceiptRequested": {
+                                        "type": "boolean"
+                                    },
+                                    "lastModifiedDateTime": {
+                                        "type": "string"
+                                    },
+                                    "parentFolderId": {
+                                        "type": "string"
+                                    },
+                                    "receivedDateTime": {
+                                        "type": "string"
+                                    },
+                                    "replyTo": {
+                                        "type": "array"
+                                    },
+                                    "sender": {
+                                        "properties": {
+                                            "emailAddress": {
+                                                "properties": {
+                                                    "address": {
+                                                        "type": "string"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "sentDateTime": {
+                                        "type": "string"
+                                    },
+                                    "subject": {
+                                        "type": "string"
+                                    },
+                                    "toRecipients": {
+                                        "items": {
+                                            "properties": {
+                                                "emailAddress": {
+                                                    "properties": {
+                                                        "address": {
+                                                            "type": "string"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "required": [
+                                                "emailAddress"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "type": "array"
+                                    },
+                                    "webLink": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "@@odata.etag",
+                                    "id",
+                                    "createdDateTime",
+                                    "lastModifiedDateTime",
+                                    "changeKey",
+                                    "categories",
+                                    "receivedDateTime",
+                                    "sentDateTime",
+                                    "hasAttachments",
+                                    "internetMessageId",
+                                    "subject",
+                                    "bodyPreview",
+                                    "importance",
+                                    "parentFolderId",
+                                    "conversationId",
+                                    "conversationIndex",
+                                    "isDeliveryReceiptRequested",
+                                    "isReadReceiptRequested",
+                                    "isRead",
+                                    "isDraft",
+                                    "webLink",
+                                    "inferenceClassification",
+                                    "body",
+                                    "sender",
+                                    "from",
+                                    "toRecipients",
+                                    "ccRecipients",
+                                    "bccRecipients",
+                                    "replyTo",
+                                    "flag"
+                                ],
+                                "type": "object"
+                            },
+                            "type": "array"
                         }
                     },
                     "type": "object"
@@ -54,1503 +357,44 @@
             }
         }
     },
-    "actions": {
-        "Condition_2": {
-            "actions": {
-                "ForEachValue": {
-                    "foreach": "@body('ParseEmailFromIntMsgID')?['value']",
-                    "actions": {
-                        "ForeachToUser": {
-                            "foreach": "@items('ForEachValue')?['toRecipients']",
-                            "actions": {
-                                "Condition_3": {
-                                    "actions": {
-                                        "HTTP_3": {
-                                            "runAfter": {
-                                                "ParseMessage2": [
-                                                    "Succeeded"
-                                                ]
-                                            },
-                                            "type": "Http",
-                                            "inputs": {
-                                                "authentication": {
-                                                    "audience": "https://graph.microsoft.com",
-                                                    "type": "ManagedServiceIdentity"
-                                                },
-                                                "method": "DELETE",
-                                                "uri": "https://graph.microsoft.com/v1.0/users/@{body('ParseReceivedUser')?['emailAddress']?['address']}/messages/@{body('ParseMessage2')?['value'][0]['id']}"
-                                            }
-                                        },
-                                        "ParseMessage2": {
-                                        "runAfter": {},
-                                        "type": "ParseJson",
-                                        "inputs": {
-                                            "content": "@body('HTTP_2')",
-                                            "schema": {
-                                                "properties": {
-                                                    "@@odata.context": {
-                                                        "type": "string"
-                                                    },
-                                                    "value": {
-                                                        "items": {
-                                                            "properties": {
-                                                                "@@odata.etag": {
-                                                                    "type": "string"
-                                                                },
-                                                                "bccRecipients": {
-                                                                    "type": "array"
-                                                                },
-                                                                "body": {
-                                                                    "properties": {
-                                                                        "content": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "contentType": {
-                                                                            "type": "string"
-                                                                        }
-                                                                    },
-                                                                    "type": "object"
-                                                                },
-                                                                "bodyPreview": {
-                                                                    "type": "string"
-                                                                },
-                                                                "categories": {
-                                                                    "type": "array"
-                                                                },
-                                                                "ccRecipients": {
-                                                                    "items": {
-                                                                        "properties": {
-                                                                            "emailAddress": {
-                                                                                "properties": {
-                                                                                    "address": {
-                                                                                        "type": "string"
-                                                                                    },
-                                                                                    "name": {
-                                                                                        "type": "string"
-                                                                                    }
-                                                                                },
-                                                                                "type": "object"
-                                                                            }
-                                                                        },
-                                                                        "required": [
-                                                                            "emailAddress"
-                                                                        ],
-                                                                        "type": "object"
-                                                                    },
-                                                                    "type": "array"
-                                                                },
-                                                                "changeKey": {
-                                                                    "type": "string"
-                                                                },
-                                                                "conversationId": {
-                                                                    "type": "string"
-                                                                },
-                                                                "conversationIndex": {
-                                                                    "type": "string"
-                                                                },
-                                                                "createdDateTime": {
-                                                                    "type": "string"
-                                                                },
-                                                                "flag": {
-                                                                    "properties": {
-                                                                        "flagStatus": {
-                                                                            "type": "string"
-                                                                        }
-                                                                    },
-                                                                    "type": "object"
-                                                                },
-                                                                "from": {
-                                                                    "properties": {
-                                                                        "emailAddress": {
-                                                                            "properties": {
-                                                                                "address": {
-                                                                                    "type": "string"
-                                                                                },
-                                                                                "name": {
-                                                                                    "type": "string"
-                                                                                }
-                                                                            },
-                                                                            "type": "object"
-                                                                        }
-                                                                    },
-                                                                    "type": "object"
-                                                                },
-                                                                "hasAttachments": {
-                                                                    "type": "boolean"
-                                                                },
-                                                                "id": {
-                                                                    "type": "string"
-                                                                },
-                                                                "importance": {
-                                                                    "type": "string"
-                                                                },
-                                                                "inferenceClassification": {
-                                                                    "type": "string"
-                                                                },
-                                                                "internetMessageId": {
-                                                                    "type": "string"
-                                                                },
-                                                                "isDeliveryReceiptRequested": {
-                                                                    "type": "boolean"
-                                                                },
-                                                                "isDraft": {
-                                                                    "type": "boolean"
-                                                                },
-                                                                "isRead": {
-                                                                    "type": "boolean"
-                                                                },
-                                                                "isReadReceiptRequested": {
-                                                                    "type": "boolean"
-                                                                },
-                                                                "lastModifiedDateTime": {
-                                                                    "type": "string"
-                                                                },
-                                                                "parentFolderId": {
-                                                                    "type": "string"
-                                                                },
-                                                                "receivedDateTime": {
-                                                                    "type": "string"
-                                                                },
-                                                                "replyTo": {
-                                                                    "type": "array"
-                                                                },
-                                                                "sender": {
-                                                                    "properties": {
-                                                                        "emailAddress": {
-                                                                            "properties": {
-                                                                                "address": {
-                                                                                    "type": "string"
-                                                                                },
-                                                                                "name": {
-                                                                                    "type": "string"
-                                                                                }
-                                                                            },
-                                                                            "type": "object"
-                                                                        }
-                                                                    },
-                                                                    "type": "object"
-                                                                },
-                                                                "sentDateTime": {
-                                                                    "type": "string"
-                                                                },
-                                                                "subject": {
-                                                                    "type": "string"
-                                                                },
-                                                                "toRecipients": {
-                                                                    "items": {
-                                                                        "properties": {
-                                                                            "emailAddress": {
-                                                                                "properties": {
-                                                                                    "address": {
-                                                                                        "type": "string"
-                                                                                    },
-                                                                                    "name": {
-                                                                                        "type": "string"
-                                                                                    }
-                                                                                },
-                                                                                "type": "object"
-                                                                            }
-                                                                        },
-                                                                        "required": [
-                                                                            "emailAddress"
-                                                                        ],
-                                                                        "type": "object"
-                                                                    },
-                                                                    "type": "array"
-                                                                },
-                                                                "webLink": {
-                                                                    "type": "string"
-                                                                }
-                                                            },
-                                                            "required": [
-                                                                "@@odata.etag",
-                                                                "id",
-                                                                "createdDateTime",
-                                                                "lastModifiedDateTime",
-                                                                "changeKey",
-                                                                "categories",
-                                                                "receivedDateTime",
-                                                                "sentDateTime",
-                                                                "hasAttachments",
-                                                                "internetMessageId",
-                                                                "subject",
-                                                                "bodyPreview",
-                                                                "importance",
-                                                                "parentFolderId",
-                                                                "conversationId",
-                                                                "conversationIndex",
-                                                                "isDeliveryReceiptRequested",
-                                                                "isReadReceiptRequested",
-                                                                "isRead",
-                                                                "isDraft",
-                                                                "webLink",
-                                                                "inferenceClassification",
-                                                                "body",
-                                                                "sender",
-                                                                "from",
-                                                                "toRecipients",
-                                                                "ccRecipients",
-                                                                "bccRecipients",
-                                                                "replyTo",
-                                                                "flag"
-                                                            ],
-                                                            "type": "object"
-                                                        },
-                                                        "type": "array"
-                                                    }
-                                                },
-                                                "type": "object"
-                                            }
-                                        }
-                                    }
-                                },
-                                "runAfter": {
-                                    "HTTP_2": [
-                                        "Succeeded"
-                                    ]
-                                },
-                                "expression": {
-                                    "and": [
-                                        {
-                                            "equals": [
-                                                "@outputs('HTTP_2')['statusCode']",
-                                                200
-                                            ]
-                                        },
-                                        {
-                                            "not": {
-                                                "equals": [
-                                                    "@body('HTTP_2')?['value']",
-                                                    "@null"
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                },
-                                "type": "If"
-                            },
-                            "HTTP_2": {
-                                "runAfter": {
-                                    "ParseReceivedUser": [
-                                        "Succeeded"
-                                    ]
-                                },
-                                "type": "Http",
-                                "inputs": {
-                                    "authentication": {
-                                        "audience": "https://graph.microsoft.com",
-                                        "type": "ManagedServiceIdentity"
-                                    },
-                                    "method": "GET",
-                                    "uri": "https://graph.microsoft.com/v1.0/users/@{body('ParseReceivedUser')?['emailAddress']?['address']}/messages?$filter=internetMessageId eq '@{variables('MsgId')}'"
-                                }
-                            },
-                            "ParseReceivedUser": {
-                            "runAfter": {},
-                            "type": "ParseJson",
-                            "inputs": {
-                                "content": "@items('ForeachToUser')",
-                                "schema": {
-                                    "properties": {
-                                        "emailAddress": {
-                                            "properties": {
-                                                "address": {
-                                                    "type": "string"
-                                                },
-                                                "name": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                "runAfter": {},
-                "type": "Foreach"
-            }
-        },
-        "runAfter": {
-            "ParseEmailFromIntMsgID": [
-                "Succeeded"
-            ]
-        },
-        "type": "Foreach"
-    },
-    "GetEmailFromIntMsgID": {
-    "runAfter": {},
-    "type": "Http",
-    "inputs": {
-        "authentication": {
-            "audience": "https://graph.microsoft.com",
-            "type": "ManagedServiceIdentity"
-        },
-        "headers": {
-            "Content-Type": "application/json"
-        },
-        "method": "GET",
-        "queries": {
-            "$filter": "internetMessageId eq '@{variables('MsgId')}'"
-        },
-        "uri": "https://graph.microsoft.com/v1.0/users/@{body('Parse_HTTP_Request')?['Sender']}/messages?"
-    }
-},
-"ParseEmailFromIntMsgID": {
     "runAfter": {
-        "GetEmailFromIntMsgID": [
-            "Succeeded"
-        ]
-    },
-    "type": "ParseJson",
-    "inputs": {
-        "content": "@body('GetEmailFromIntMsgID')",
-        "schema": {
-            "properties": {
-                "@@odata.context": {
-                    "type": "string"
-                },
-                "value": {
-                    "items": {
-                        "properties": {
-                            "@@odata.etag": {
-                                "type": "string"
-                            },
-                            "bccRecipients": {
-                                "type": "array"
-                            },
-                            "body": {
-                                "properties": {
-                                    "content": {
-                                        "type": "string"
-                                    },
-                                    "contentType": {
-                                        "type": "string"
-                                    }
-                                },
-                                "type": "object"
-                            },
-                            "bodyPreview": {
-                                "type": "string"
-                            },
-                            "categories": {
-                                "type": "array"
-                            },
-                            "ccRecipients": {
-                                "items": {
-                                    "properties": {
-                                        "emailAddress": {
-                                            "properties": {
-                                                "address": {
-                                                    "type": "string"
-                                                },
-                                                "name": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "required": [
-                                        "emailAddress"
-                                    ],
-                                    "type": "object"
-                                },
-                                "type": "array"
-                            },
-                            "changeKey": {
-                                "type": "string"
-                            },
-                            "conversationId": {
-                                "type": "string"
-                            },
-                            "conversationIndex": {
-                                "type": "string"
-                            },
-                            "createdDateTime": {
-                                "type": "string"
-                            },
-                            "flag": {
-                                "properties": {
-                                    "flagStatus": {
-                                        "type": "string"
-                                    }
-                                },
-                                "type": "object"
-                            },
-                            "from": {
-                                "properties": {
-                                    "emailAddress": {
-                                        "properties": {
-                                            "address": {
-                                                "type": "string"
-                                            },
-                                            "name": {
-                                                "type": "string"
-                                            }
-                                        },
-                                        "type": "object"
-                                    }
-                                },
-                                "type": "object"
-                            },
-                            "hasAttachments": {
-                                "type": "boolean"
-                            },
-                            "id": {
-                                "type": "string"
-                            },
-                            "importance": {
-                                "type": "string"
-                            },
-                            "inferenceClassification": {
-                                "type": "string"
-                            },
-                            "internetMessageId": {
-                                "type": "string"
-                            },
-                            "isDeliveryReceiptRequested": {
-                                "type": "boolean"
-                            },
-                            "isDraft": {
-                                "type": "boolean"
-                            },
-                            "isRead": {
-                                "type": "boolean"
-                            },
-                            "isReadReceiptRequested": {
-                                "type": "boolean"
-                            },
-                            "lastModifiedDateTime": {
-                                "type": "string"
-                            },
-                            "parentFolderId": {
-                                "type": "string"
-                            },
-                            "receivedDateTime": {
-                                "type": "string"
-                            },
-                            "replyTo": {
-                                "type": "array"
-                            },
-                            "sender": {
-                                "properties": {
-                                    "emailAddress": {
-                                        "properties": {
-                                            "address": {
-                                                "type": "string"
-                                            },
-                                            "name": {
-                                                "type": "string"
-                                            }
-                                        },
-                                        "type": "object"
-                                    }
-                                },
-                                "type": "object"
-                            },
-                            "sentDateTime": {
-                                "type": "string"
-                            },
-                            "subject": {
-                                "type": "string"
-                            },
-                            "toRecipients": {
-                                "items": {
-                                    "properties": {
-                                        "emailAddress": {
-                                            "properties": {
-                                                "address": {
-                                                    "type": "string"
-                                                },
-                                                "name": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "required": [
-                                        "emailAddress"
-                                    ],
-                                    "type": "object"
-                                },
-                                "type": "array"
-                            },
-                            "webLink": {
-                                "type": "string"
-                            }
-                        },
-                        "required": [
-                            "@@odata.etag",
-                            "id",
-                            "createdDateTime",
-                            "lastModifiedDateTime",
-                            "changeKey",
-                            "categories",
-                            "receivedDateTime",
-                            "sentDateTime",
-                            "hasAttachments",
-                            "internetMessageId",
-                            "subject",
-                            "bodyPreview",
-                            "importance",
-                            "parentFolderId",
-                            "conversationId",
-                            "conversationIndex",
-                            "isDeliveryReceiptRequested",
-                            "isReadReceiptRequested",
-                            "isRead",
-                            "isDraft",
-                            "webLink",
-                            "inferenceClassification",
-                            "body",
-                            "sender",
-                            "from",
-                            "toRecipients",
-                            "ccRecipients",
-                            "bccRecipients",
-                            "replyTo",
-                            "flag"
-                        ],
-                        "type": "object"
-                    },
-                    "type": "array"
-                }
-            },
-            "type": "object"
-        }
-    }
-}
-},
-"runAfter": {
-"MsgId": [
-    "Succeeded"
-]
-},
-"expression": {
-"and": [
-    {
-        "not": {
-            "equals": [
-                "@variables('MsgId')",
-                "@null"
-            ]
-        }
-    }
-]
-},
-"type": "If"
-},
-"Condition_5": {
-"actions": {
-"ForEachIntMsgID": {
-    "foreach": "@variables('InternetMsgIds')",
-    "actions": {
-        "ForEachUserInList": {
-            "foreach": "@variables('ReceivedUsers')",
-            "actions": {
-                "Condition_7": {
-                    "actions": {
-                        "HTTP_4": {
-                            "runAfter": {
-                                "ParseIDFromEmail": [
-                                    "Succeeded"
-                                ]
-                            },
-                            "type": "Http",
-                            "inputs": {
-                                "authentication": {
-                                    "audience": "https://graph.microsoft.com",
-                                    "type": "ManagedServiceIdentity"
-                                },
-                                "method": "DELETE",
-                                "uri": "https://graph.microsoft.com/v1.0/users/@{items('ForEachUserInList')}/messages/@{body('ParseIDFromEmail')?['value'][0]['id']}"
-                            }
-                        },
-                        "ParseIDFromEmail": {
-                        "runAfter": {},
-                        "type": "ParseJson",
-                        "inputs": {
-                            "content": "@body('GetEmailIdForUserandEmail')",
-                            "schema": {
-                                "properties": {
-                                    "content": {
-                                        "properties": {
-                                            "@@odata.context": {
-                                                "type": "string"
-                                            },
-                                            "value": {
-                                                "items": {
-                                                    "properties": {
-                                                        "@@odata.etag": {
-                                                            "type": "string"
-                                                        },
-                                                        "bccRecipients": {
-                                                            "type": "array"
-                                                        },
-                                                        "body": {
-                                                            "properties": {
-                                                                "content": {
-                                                                    "type": "string"
-                                                                },
-                                                                "contentType": {
-                                                                    "type": "string"
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        },
-                                                        "bodyPreview": {
-                                                            "type": "string"
-                                                        },
-                                                        "categories": {
-                                                            "type": "array"
-                                                        },
-                                                        "ccRecipients": {
-                                                            "type": "array"
-                                                        },
-                                                        "changeKey": {
-                                                            "type": "string"
-                                                        },
-                                                        "conversationId": {
-                                                            "type": "string"
-                                                        },
-                                                        "conversationIndex": {
-                                                            "type": "string"
-                                                        },
-                                                        "createdDateTime": {
-                                                            "type": "string"
-                                                        },
-                                                        "flag": {
-                                                            "properties": {
-                                                                "flagStatus": {
-                                                                    "type": "string"
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        },
-                                                        "from": {
-                                                            "properties": {
-                                                                "emailAddress": {
-                                                                    "properties": {
-                                                                        "address": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "name": {
-                                                                            "type": "string"
-                                                                        }
-                                                                    },
-                                                                    "type": "object"
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        },
-                                                        "hasAttachments": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "id": {
-                                                            "type": "string"
-                                                        },
-                                                        "importance": {
-                                                            "type": "string"
-                                                        },
-                                                        "inferenceClassification": {
-                                                            "type": "string"
-                                                        },
-                                                        "internetMessageId": {
-                                                            "type": "string"
-                                                        },
-                                                        "isDeliveryReceiptRequested": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "isDraft": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "isRead": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "isReadReceiptRequested": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "lastModifiedDateTime": {
-                                                            "type": "string"
-                                                        },
-                                                        "parentFolderId": {
-                                                            "type": "string"
-                                                        },
-                                                        "receivedDateTime": {
-                                                            "type": "string"
-                                                        },
-                                                        "replyTo": {
-                                                            "type": "array"
-                                                        },
-                                                        "sender": {
-                                                            "properties": {
-                                                                "emailAddress": {
-                                                                    "properties": {
-                                                                        "address": {
-                                                                            "type": "string"
-                                                                        },
-                                                                        "name": {
-                                                                            "type": "string"
-                                                                        }
-                                                                    },
-                                                                    "type": "object"
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        },
-                                                        "sentDateTime": {
-                                                            "type": "string"
-                                                        },
-                                                        "subject": {
-                                                            "type": "string"
-                                                        },
-                                                        "toRecipients": {
-                                                            "items": {
-                                                                "properties": {
-                                                                    "emailAddress": {
-                                                                        "properties": {
-                                                                            "address": {
-                                                                                "type": "string"
-                                                                            },
-                                                                            "name": {
-                                                                                "type": "string"
-                                                                            }
-                                                                        },
-                                                                        "type": "object"
-                                                                    }
-                                                                },
-                                                                "required": [
-                                                                    "emailAddress"
-                                                                ],
-                                                                "type": "object"
-                                                            },
-                                                            "type": "array"
-                                                        },
-                                                        "webLink": {
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "@@odata.etag",
-                                                        "id",
-                                                        "createdDateTime",
-                                                        "lastModifiedDateTime",
-                                                        "changeKey",
-                                                        "categories",
-                                                        "receivedDateTime",
-                                                        "sentDateTime",
-                                                        "hasAttachments",
-                                                        "internetMessageId",
-                                                        "subject",
-                                                        "bodyPreview",
-                                                        "importance",
-                                                        "parentFolderId",
-                                                        "conversationId",
-                                                        "conversationIndex",
-                                                        "isDeliveryReceiptRequested",
-                                                        "isReadReceiptRequested",
-                                                        "isRead",
-                                                        "isDraft",
-                                                        "webLink",
-                                                        "inferenceClassification",
-                                                        "body",
-                                                        "sender",
-                                                        "from",
-                                                        "toRecipients",
-                                                        "ccRecipients",
-                                                        "bccRecipients",
-                                                        "replyTo",
-                                                        "flag"
-                                                    ],
-                                                    "type": "object"
-                                                },
-                                                "type": "array"
-                                            }
-                                        },
-                                        "type": "object"
-                                    },
-                                    "schema": {
-                                        "properties": {
-                                            "properties": {
-                                                "properties": {
-                                                    "body": {
-                                                        "properties": {
-                                                            "properties": {
-                                                                "properties": {
-                                                                    "@@odata.context": {
-                                                                        "properties": {
-                                                                            "type": {
-                                                                                "type": "string"
-                                                                            }
-                                                                        },
-                                                                        "type": "object"
-                                                                    },
-                                                                    "value": {
-                                                                        "properties": {
-                                                                            "items": {
-                                                                                "properties": {
-                                                                                    "properties": {
-                                                                                        "properties": {
-                                                                                            "@@odata.etag": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "bccRecipients": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "body": {
-                                                                                                "properties": {
-                                                                                                    "properties": {
-                                                                                                        "properties": {
-                                                                                                            "content": {
-                                                                                                                "properties": {
-                                                                                                                    "type": {
-                                                                                                                        "type": "string"
-                                                                                                                    }
-                                                                                                                },
-                                                                                                                "type": "object"
-                                                                                                            },
-                                                                                                            "contentType": {
-                                                                                                                "properties": {
-                                                                                                                    "type": {
-                                                                                                                        "type": "string"
-                                                                                                                    }
-                                                                                                                },
-                                                                                                                "type": "object"
-                                                                                                            }
-                                                                                                        },
-                                                                                                        "type": "object"
-                                                                                                    },
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "bodyPreview": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "categories": {
-                                                                                                "properties": {
-                                                                                                    "items": {
-                                                                                                        "properties": {
-                                                                                                            "type": {
-                                                                                                                "type": "string"
-                                                                                                            }
-                                                                                                        },
-                                                                                                        "type": "object"
-                                                                                                    },
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "ccRecipients": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "changeKey": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "conversationId": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "conversationIndex": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "createdDateTime": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "flag": {
-                                                                                                "properties": {
-                                                                                                    "properties": {
-                                                                                                        "properties": {
-                                                                                                            "flagStatus": {
-                                                                                                                "properties": {
-                                                                                                                    "type": {
-                                                                                                                        "type": "string"
-                                                                                                                    }
-                                                                                                                },
-                                                                                                                "type": "object"
-                                                                                                            }
-                                                                                                        },
-                                                                                                        "type": "object"
-                                                                                                    },
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "from": {
-                                                                                                "properties": {
-                                                                                                    "properties": {
-                                                                                                        "properties": {
-                                                                                                            "emailAddress": {
-                                                                                                                "properties": {
-                                                                                                                    "properties": {
-                                                                                                                        "properties": {
-                                                                                                                            "address": {
-                                                                                                                                "properties": {
-                                                                                                                                    "type": {
-                                                                                                                                        "type": "string"
-                                                                                                                                    }
-                                                                                                                                },
-                                                                                                                                "type": "object"
-                                                                                                                            },
-                                                                                                                            "name": {
-                                                                                                                                "properties": {
-                                                                                                                                    "type": {
-                                                                                                                                        "type": "string"
-                                                                                                                                    }
-                                                                                                                                },
-                                                                                                                                "type": "object"
-                                                                                                                            }
-                                                                                                                        },
-                                                                                                                        "type": "object"
-                                                                                                                    },
-                                                                                                                    "type": {
-                                                                                                                        "type": "string"
-                                                                                                                    }
-                                                                                                                },
-                                                                                                                "type": "object"
-                                                                                                            }
-                                                                                                        },
-                                                                                                        "type": "object"
-                                                                                                    },
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "hasAttachments": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "id": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "importance": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "inferenceClassification": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "internetMessageId": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "isDeliveryReceiptRequested": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "isDraft": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "isRead": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "isReadReceiptRequested": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "lastModifiedDateTime": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "parentFolderId": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "receivedDateTime": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "replyTo": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "sender": {
-                                                                                                "properties": {
-                                                                                                    "properties": {
-                                                                                                        "properties": {
-                                                                                                            "emailAddress": {
-                                                                                                                "properties": {
-                                                                                                                    "properties": {
-                                                                                                                        "properties": {
-                                                                                                                            "address": {
-                                                                                                                                "properties": {
-                                                                                                                                    "type": {
-                                                                                                                                        "type": "string"
-                                                                                                                                    }
-                                                                                                                                },
-                                                                                                                                "type": "object"
-                                                                                                                            },
-                                                                                                                            "name": {
-                                                                                                                                "properties": {
-                                                                                                                                    "type": {
-                                                                                                                                        "type": "string"
-                                                                                                                                    }
-                                                                                                                                },
-                                                                                                                                "type": "object"
-                                                                                                                            }
-                                                                                                                        },
-                                                                                                                        "type": "object"
-                                                                                                                    },
-                                                                                                                    "type": {
-                                                                                                                        "type": "string"
-                                                                                                                    }
-                                                                                                                },
-                                                                                                                "type": "object"
-                                                                                                            }
-                                                                                                        },
-                                                                                                        "type": "object"
-                                                                                                    },
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "sentDateTime": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "subject": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "toRecipients": {
-                                                                                                "properties": {
-                                                                                                    "items": {
-                                                                                                        "properties": {
-                                                                                                            "properties": {
-                                                                                                                "properties": {
-                                                                                                                    "emailAddress": {
-                                                                                                                        "properties": {
-                                                                                                                            "properties": {
-                                                                                                                                "properties": {
-                                                                                                                                    "address": {
-                                                                                                                                        "properties": {
-                                                                                                                                            "type": {
-                                                                                                                                                "type": "string"
-                                                                                                                                            }
-                                                                                                                                        },
-                                                                                                                                        "type": "object"
-                                                                                                                                    },
-                                                                                                                                    "name": {
-                                                                                                                                        "properties": {
-                                                                                                                                            "type": {
-                                                                                                                                                "type": "string"
-                                                                                                                                            }
-                                                                                                                                        },
-                                                                                                                                        "type": "object"
-                                                                                                                                    }
-                                                                                                                                },
-                                                                                                                                "type": "object"
-                                                                                                                            },
-                                                                                                                            "type": {
-                                                                                                                                "type": "string"
-                                                                                                                            }
-                                                                                                                        },
-                                                                                                                        "type": "object"
-                                                                                                                    }
-                                                                                                                },
-                                                                                                                "type": "object"
-                                                                                                            },
-                                                                                                            "required": {
-                                                                                                                "items": {
-                                                                                                                    "type": "string"
-                                                                                                                },
-                                                                                                                "type": "array"
-                                                                                                            },
-                                                                                                            "type": {
-                                                                                                                "type": "string"
-                                                                                                            }
-                                                                                                        },
-                                                                                                        "type": "object"
-                                                                                                    },
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            },
-                                                                                            "webLink": {
-                                                                                                "properties": {
-                                                                                                    "type": {
-                                                                                                        "type": "string"
-                                                                                                    }
-                                                                                                },
-                                                                                                "type": "object"
-                                                                                            }
-                                                                                        },
-                                                                                        "type": "object"
-                                                                                    },
-                                                                                    "required": {
-                                                                                        "items": {
-                                                                                            "type": "string"
-                                                                                        },
-                                                                                        "type": "array"
-                                                                                    },
-                                                                                    "type": {
-                                                                                        "type": "string"
-                                                                                    }
-                                                                                },
-                                                                                "type": "object"
-                                                                            },
-                                                                            "type": {
-                                                                                "type": "string"
-                                                                            }
-                                                                        },
-                                                                        "type": "object"
-                                                                    }
-                                                                },
-                                                                "type": "object"
-                                                            },
-                                                            "type": {
-                                                                "type": "string"
-                                                            }
-                                                        },
-                                                        "type": "object"
-                                                    },
-                                                    "headers": {
-                                                        "properties": {
-                                                            "properties": {
-                                                                "properties": {
-                                                                    "Cache-Control": {
-                                                                        "properties": {
-                                                                            "type": {
-                                                                                "type": "string"
-                                                                            }
-                                                                        },
-                                                                        "type": "object"
-                                                                    },
-                                                                    "Content-Length": {
-                                                                        "properties": {
-                                                                            "type": {
-                                                                                "type": "string"
-                                                                            }
-                                                                        },
-                                                                        "type": "object"
-                                                                    },
-                                                                    "Content-Type": {
-                                                                        "properties": {
-                                                                            "type": {
-                                                                                "type": "string"
-                                                                            }
-                                                                        },
-                                                                        "type": "object"
-                                                                    },
-                                                                    "Date": {
-                                                                        "properties": {
-                                                                            "type": {
-                                                                                "type": "string"
-                                                                            }
-                                                                        },
-                                                                        "type": "object"
-                                                                    },
-                                                                    "Strict-Transport-Security": {
-                                                                        "properties": {
-                                                                            "type": {
-                                                                                "type": "string"
-                                                                            }
-                                                                        },
-                                                                        "type": "object"
-                                                                    },
-                                                                    "Transfer-Encoding": {
-                                                                        "properties": {
-                                                                            "type": {
-                                                                                "type": "string"
-                                                                            }
-                                                                        },
-                                                                        "type": "object"
-                                                                    },
-                                                                    "Vary": {
-                                                                        "properties": {
-                                                                            "type": {
-                                                                                "type": "string"
-                                                                            }
-                                                                        },
-                                                                        "type": "object"
-                                                                    },
-                                                                    "client-request-id": {
-                                                                        "properties": {
-                                                                            "type": {
-                                                                                "type": "string"
-                                                                            }
-                                                                        },
-                                                                        "type": "object"
-                                                                    },
-                                                                    "request-id": {
-                                                                        "properties": {
-                                                                            "type": {
-                                                                                "type": "string"
-                                                                            }
-                                                                        },
-                                                                        "type": "object"
-                                                                    },
-                                                                    "x-ms-ags-diagnostic": {
-                                                                        "properties": {
-                                                                            "type": {
-                                                                                "type": "string"
-                                                                            }
-                                                                        },
-                                                                        "type": "object"
-                                                                    }
-                                                                },
-                                                                "type": "object"
-                                                            },
-                                                            "type": {
-                                                                "type": "string"
-                                                            }
-                                                        },
-                                                        "type": "object"
-                                                    },
-                                                    "statusCode": {
-                                                        "properties": {
-                                                            "type": {
-                                                                "type": "string"
-                                                            }
-                                                        },
-                                                        "type": "object"
-                                                    }
-                                                },
-                                                "type": "object"
-                                            },
-                                            "type": {
-                                                "type": "string"
-                                            }
-                                        },
-                                        "type": "object"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "runAfter": {
-                    "GetEmailIdForUserandEmail": [
-                        "Succeeded"
-                    ]
-                },
-                "expression": {
-                    "and": [
-                        {
-                            "equals": [
-                                "@outputs('GetEmailIdForUserandEmail')['statusCode']",
-                                200
-                            ]
-                        },
-                        {
-                            "contains": [
-                                "@body('GetEmailIdForUserandEmail')",
-                                "id"
-                            ]
-                        }
-                    ]
-                },
-                "type": "If"
-            },
-            "GetEmailIdForUserandEmail": {
-            "runAfter": {},
-            "type": "Http",
-            "inputs": {
-                "authentication": {
-                    "audience": "https://graph.microsoft.com",
-                    "type": "ManagedServiceIdentity"
-                },
-                "method": "GET",
-                "uri": "https://graph.microsoft.com/v1.0/users/@{items('ForEachUserInList')}/messages?$filter=internetMessageId eq '@{items('ForEachIntMsgID')}'"
-            }
-        }
-    },
-"runAfter": {},
-"type": "Foreach"
-}
-},
-"runAfter": {
-"ForeachEmaill": [
-"Succeeded"
-]
-},
-"type": "Foreach"
-},
-"ForeachEmaill": {
-"foreach": "@body('ParseSntEmails')?['value']",
-"actions": {
-"Append_to_array_variable": {
-"runAfter": {
-    "ForEachRecUser": [
-        "Succeeded"
-    ]
-},
-"type": "AppendToArrayVariable",
-"inputs": {
-    "name": "InternetMsgIds",
-    "value": "@items('ForeachEmaill')?['internetMessageId']"
-}
-},
-"ForEachRecUser": {
-"foreach": "@items('ForeachEmaill')?['toRecipients']",
-"actions": {
-    "Condition_6": {
-        "actions": {
-            "AppendToReceivedUsers": {
-            "runAfter": {},
-            "type": "AppendToArrayVariable",
-            "inputs": {
-                "name": "ReceivedUsers",
-                "value": "@body('ParseReceivedUsersAddress')?['emailAddress']?['address']"
-            }
-        }
-    },
-    "runAfter": {
-        "ParseReceivedUsersAddress": [
-            "Succeeded"
+        "HTTP-Get-MessageID": [
+            "Succeeded",
+            "TimedOut",
+            "Skipped",
+            "Failed"
         ]
     },
     "expression": {
         "and": [
             {
-                "not": {
-                    "contains": [
-                        "@variables('ReceivedUsers')",
-                        "@body('ParseReceivedUsersAddress')?['emailAddress']?['address']"
-                    ]
-                }
+                "equals": [
+                    "@outputs('HTTP-Get-MessageID')['statusCode']",
+                    200
+                ]
             }
         ]
     },
     "type": "If"
 },
-"ParseReceivedUsersAddress": {
+"Parse-EventBody": {
 "runAfter": {},
 "type": "ParseJson",
 "inputs": {
-    "content": "@items('ForEachRecUser')",
+    "content": "@items('ForEach-EventBody')",
     "schema": {
         "properties": {
-            "emailAddress": {
-                "properties": {
-                    "address": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
+            "InternetMessageId": {
+                "type": "string"
+            },
+            "RecipientEmailAddress": {
+                "type": "string"
+            },
+            "SenderFromAddress": {
+                "type": "string"
+            },
+            "Subject": {
+                "type": "string"
             }
         },
         "type": "object"
@@ -1558,239 +402,126 @@
 }
 }
 },
-"runAfter": {},
-"type": "Foreach"
-}
-},
 "runAfter": {
-"ParseSntEmails": [
+"ParseQueryEvents": [
 "Succeeded"
 ]
 },
 "type": "Foreach"
 },
-"GetSentEmail": {
+"MsgIDs": {
+"runAfter": {
+"Parse-Initial-POST-Request": [
+"Succeeded"
+]
+},
+"type": "InitializeVariable",
+"inputs": {
+"variables": [
+{
+    "name": "MsgIDs",
+    "type": "array"
+}
+]
+}
+},
+"Parse-Initial-POST-Request": {
 "runAfter": {},
-"type": "Http",
-"inputs": {
-"authentication": {
-"audience": "https://graph.microsoft.com",
-"type": "ManagedServiceIdentity"
-},
-"headers": {
-"Content-Type": "application/json"
-},
-"method": "GET",
-"queries": {
-"$filter": "subject eq '@{body('Parse_HTTP_Request')?['Subject']}'"
-},
-"uri": "https://graph.microsoft.com/v1.0/users/@{body('Parse_HTTP_Request')?['Sender']}/messages?"
-}
-},
-"ParseSntEmails": {
-"runAfter": {
-"GetSentEmail": [
-"Succeeded"
-]
-},
-"type": "ParseJson",
-"inputs": {
-"content": "@body('GetSentEmail')",
-"schema": {
-"properties": {
-"value": {
-"items": {
-"properties": {
-"@@odata.etag": {
-    "type": "string"
-},
-"bccRecipients": {
-    "type": "array"
-},
-"ccRecipients": {
-    "type": "array"
-},
-"id": {
-    "type": "string"
-},
-"internetMessageId": {
-    "type": "string"
-},
-"subject": {
-    "type": "string"
-},
-"toRecipients": {
-    "items": {
-        "properties": {
-            "emailAddress": {
-                "properties": {
-                    "address": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    }
-                },
-                "type": "object"
-            }
-        },
-        "required": [
-            "emailAddress"
-        ],
-        "type": "object"
-    },
-    "type": "array"
-}
-},
-"required": [
-"@@odata.etag",
-"id",
-"internetMessageId",
-"subject",
-"toRecipients",
-"ccRecipients",
-"bccRecipients"
-],
-"type": "object"
-},
-"type": "array"
-}
-},
-"type": "object"
-}
-}
-}
-},
-"runAfter": {
-"MsgId": [
-"Succeeded"
-]
-},
-"expression": {
-"and": [
-{
-"not": {
-"equals": [
-"@body('Parse_HTTP_Request')?['Subject']",
-"@null"
-]
-}
-}
-]
-},
-"type": "If"
-},
-"Initialize_variable_2": {
-"runAfter": {
-"RequestLoop": [
-"Succeeded",
-"TimedOut",
-"Skipped",
-"Failed"
-]
-},
-"type": "InitializeVariable",
-"inputs": {
-"variables": [
-{
-"name": "OData",
-"type": "string",
-"value": "0"
-}
-]
-}
-},
-"InternetMsgIds": {
-"runAfter": {
-"ReceivedUsers": [
-"Succeeded"
-]
-},
-"type": "InitializeVariable",
-"inputs": {
-"variables": [
-{
-"name": "InternetMsgIds",
-"type": "array"
-}
-]
-}
-},
-"MsgId": {
-"runAfter": {
-"Parse_HTTP_Request": [
-"Succeeded"
-]
-},
-"type": "InitializeVariable",
-"inputs": {
-"variables": [
-{
-"name": "MsgId",
-"type": "string",
-"value": "@body('Parse_HTTP_Request')?['InternetMessageId']"
-}
-]
-}
-},
-"Parse_HTTP_Request": {
-"runAfter": {
-"Initialize_variable_2": [
-"Succeeded"
-]
-},
 "type": "ParseJson",
 "inputs": {
 "content": "@triggerBody()",
 "schema": {
 "properties": {
 "InternetMessageId": {
-"type": "string"
+    "type": "string"
 },
 "Sender": {
-"type": "string"
+    "type": "string"
 },
 "Subject": {
-"type": "string"
+    "type": "string"
 }
 },
 "type": "object"
 }
 }
 },
-"ReceivedUsers": {
-"runAfter": {},
-"type": "InitializeVariable",
-"inputs": {
-"variables": [
-{
-"name": "ReceivedUsers",
-"type": "array"
-}
-]
-}
-},
-"RequestLoop": {
+"ParseQueryEvents": {
 "runAfter": {
-"InternetMsgIds": [
+"Query-Email-Events": [
 "Succeeded"
 ]
 },
-"type": "InitializeVariable",
+"type": "ParseJson",
 "inputs": {
-"variables": [
-{
-"name": "RequestLoop",
-"type": "boolean",
-"value": "@false"
+"content": "@body('Query-Email-Events')?['value']",
+"schema": {
+"items": {
+"properties": {
+    "InternetMessageId": {
+        "type": "string"
+    },
+    "RecipientEmailAddress": {
+        "type": "string"
+    },
+    "SenderFromAddress": {
+        "type": "string"
+    },
+    "Subject": {
+        "type": "string"
+    }
+},
+"required": [
+    "InternetMessageId",
+    "SenderFromAddress",
+    "RecipientEmailAddress",
+    "Subject"
+],
+"type": "object"
+},
+"type": "array"
 }
+}
+},
+"Query-Email-Events": {
+"runAfter": {
+"MsgIDs": [
+"Succeeded"
 ]
+},
+"type": "ApiConnection",
+"inputs": {
+"body": "let IntMsgId = \"@{body('Parse-Initial-POST-Request')?['InternetMessageId']}\";\nlet Subj = \"@{body('Parse-Initial-POST-Request')?['Subject']}\";\nlet Sender = \"@{body('Parse-Initial-POST-Request')?['Sender']}\";\nEmailEvents\n| project SenderFromAddress, InternetMessageId, RecipientEmailAddress, Subject, TimeGenerated\n| where SenderFromAddress has Sender\n| where Subject == Subj\n| where InternetMessageId has iff(isempty(IntMsgId),\"<\",IntMsgId)\n| summarize arg_max(TimeGenerated,*) by InternetMessageId, RecipientEmailAddress\n| project-away TimeGenerated",
+"host": {
+"connection": {
+"name": "@parameters('$connections')['azuremonitorlogs']['connectionId']"
+}
+},
+"method": "post",
+"path": "/queryData",
+"queries": {
+"resourcegroups": "jtst1-log",
+"resourcename": "sentinellab1",
+"resourcetype": "Log Analytics Workspace",
+"subscriptions": "5aa2c531-f573-468b-b152-cf8fdd0ca5b9",
+"timerange": "1d"
+}
 }
 }
 },
 "outputs": {}
 },
-"parameters": {}
+"parameters": {
+"$connections": {
+"value": {
+"azuremonitorlogs": {
+"connectionId": "[resourceId('Microsoft.Web/connections', variables('azuremonitorlogsConnectionName'))]",
+"connectionName": "[variables('azuremonitorlogsConnectionName')]",
+"id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/azuremonitorlogs')]"
+}
+}
+}
+}
 },
 "name": "[parameters('PlaybookName')]",
 "type": "Microsoft.Logic/workflows",
@@ -1803,7 +534,23 @@
 "hidden-SentinelTemplateVersion": "1.0"
 },
 "apiVersion": "2017-07-01",
-"dependsOn": []
+"dependsOn": [
+"[resourceId('Microsoft.Web/connections', variables('azuremonitorlogsConnectionName'))]"
+]
+},
+{
+"type": "Microsoft.Web/connections",
+"apiVersion": "2016-06-01",
+"name": "[variables('azuremonitorlogsConnectionName')]",
+"location": "[resourceGroup().location]",
+"kind": "V1",
+"properties": {
+"displayName": "[variables('azuremonitorlogsConnectionName')]",
+"customParameterValues": {},
+"api": {
+"id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/azuremonitorlogs')]"
+}
+}
 }
 ]
 }
