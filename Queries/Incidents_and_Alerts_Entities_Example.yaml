@@ -3,29 +3,33 @@ let Incidents = SecurityIncident
     | mvexpand kind=array SystemAlertId
     | project TimeGenerated, Title, IncidentNumber, tostring(SystemAlertId);
 let Ents = SecurityAlert
-    | extend Entities = iff(isempty(Entities), todynamic('[{"dummy":""}]'), todynamic(Entities)) 
-    | mvexpand kind=array Entities
+    | extend Entity = iff(isempty(Entities), todynamic('[{"dummy":""}]'), todynamic(Entities)) 
+    | mv-expand kind=array Entity
     | summarize
         arg_max(TimeGenerated, *),
-        Directory = make_set(Entities.Directory),
-        Name = make_set(Entities.Name),
-        HostName = make_set(Entities.HostName),
-        IpAddress = make_set(Entities.Address),
-        AppId = make_set(Entities.AppId),
-        Location = make_set(Entities.Location),
-        Url = make_set(Entities.Url),
+        City = make_set(Entity.Location.City),
+        CountryName = make_set(Entity.Location.CountryName),
+        State = make_set(Entity.Location.State),
+        Recipient = make_set(Entity.Recipient),
+        Sender = make_set(Entity.Sender),
+        P1Sender = make_set(Entity.P1Sender),
+        SenderIP = make_set(Entity.SenderIP),
+        InternetMessageId = make_set(Entity.InternetMessageId),
+        Subject = make_set(Entity.Subject),
+        DeliveryLocation = make_set(Entity.DeliveryLocation),
+        FileName = make_set(Entity.Files[0].Name),
+        FileHash = make_set(Entity.Files[0].FileHashes[0].Value),
+        UserDisplayName = make_set(Entity.DisplayName),
+        MailboxPrimaryAddress = make_set(Entity.MailboxPrimaryAddress),
+        Upn = make_set(Entity.Upn),
+        Directory = make_set(Entity.Directory),
+        Name = make_set(Entity.Name),
+        HostName = make_set(Entity.HostName),
+        IpAddress = make_set(Entity.Address),
+        AppId = make_set(Entity.AppId),
+        Url = make_set(Entity.Url),
         count()
-        by SystemAlertId
-    | project
-        TimeGenerated,
-        Directory,
-        Name,
-        HostName,
-        IpAddress,
-        Url,
-        AppId,
-        Location,
-        SystemAlertId;
+        by SystemAlertId;
 SecurityAlert
 | summarize arg_max(TimeGenerated, *) by tostring(SystemAlertId)
 | join kind= inner (Incidents) on SystemAlertId
@@ -33,15 +37,6 @@ SecurityAlert
 | sort by TimeGenerated desc
 | extend TimeGenerated = format_datetime(TimeGenerated, 'MM-dd-yy [hh:mm tt]')
 | project-away SystemAlertId1, SystemAlertId2
-| project
-    TimeGenerated,
-    Title,
-    IncidentNumber,
-    Directory,
-    Name,
-    HostName,
-    IpAddress,
-    AppId,
-    Location,
-    Url
 | summarize arg_max(TimeGenerated,*) by Title
+| project TimeGenerated,Title,SystemAlertId,AlertSeverity,Description,ProviderName,ExtendedProperties,IncidentNumber,CountryName,State,City,Recipient,Sender,P1Sender,SenderIP,InternetMessageId,Subject,DeliveryLocation,FileName,FileHash,UserDisplayName,MailboxPrimaryAddress,Upn,Directory,Name,HostName,IpAddress,AppId,Url,Count = count_
+| sort by TimeGenerated desc
