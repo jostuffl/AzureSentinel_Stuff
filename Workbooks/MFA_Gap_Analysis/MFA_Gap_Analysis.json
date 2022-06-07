@@ -15,6 +15,7 @@
             "name": "Subscription",
             "type": 6,
             "isRequired": true,
+            "value": "/subscriptions/5aa2c531-f573-468b-b152-cf8fdd0ca5b9",
             "typeSettings": {
               "additionalResourceOptions": [
                 "value::1"
@@ -34,6 +35,7 @@
             "crossComponentResources": [
               "{Subscription}"
             ],
+            "value": "/subscriptions/5aa2c531-f573-468b-b152-cf8fdd0ca5b9/resourceGroups/jtst1-log/providers/Microsoft.OperationalInsights/workspaces/sentinellab1",
             "typeSettings": {
               "resourceTypeFilter": {
                 "microsoft.operationalinsights/workspaces": true
@@ -119,7 +121,7 @@
             "name": "User",
             "type": 1,
             "isGlobal": true,
-            "value": "."
+            "value": "security@sillysite2.com"
           }
         ],
         "style": "above",
@@ -158,7 +160,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "SigninLogs\r\n| where UserPrincipalName !in((_GetWatchlist('HB')\r\n     | project SearchKey))\r\n| where ResultType == \"0\"\r\n| parse AuthenticationDetails with * '[' AuthDetails ']'\r\n| extend MfaDetail = iff( AuthenticationRequirement == \"singleFactorAuthentication\", \"Single Factor\", tostring(MfaDetail.authMethod))\r\n| project UserPrincipalName, ResultCode = ResultType, ResultDescription, App = AppDisplayName, AuthDetails ,AuthenticationRequirement, ClientAppUsed, DeviceDetail, IsInteractive,IPAddress, LocationDetails, MfaDetail,  Status\r\n| extend AuthenticationRequirement = iff(AuthenticationRequirement == \"singleFactorAuthentication\", \"Single-Factor\", \"Multi-Factor\")\r\n| summarize count() by AuthenticationRequirement",
+              "query": "SigninLogs\r\n| where ResultType == \"0\"\r\n| parse AuthenticationDetails with * '[' AuthDetails ']'\r\n| extend MfaDetail = iff( AuthenticationRequirement == \"singleFactorAuthentication\", \"Single Factor\", tostring(MfaDetail.authMethod))\r\n| project UserPrincipalName, ResultCode = ResultType, ResultDescription, App = AppDisplayName, AuthDetails ,AuthenticationRequirement, ClientAppUsed, DeviceDetail, IsInteractive,IPAddress, LocationDetails, MfaDetail,  Status\r\n| extend AuthenticationRequirement = iff(AuthenticationRequirement == \"singleFactorAuthentication\", \"Single-Factor\", \"Multi-Factor\")\r\n| summarize count() by AuthenticationRequirement",
               "size": 0,
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
@@ -457,7 +459,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let CASPFile = externaldata (PolicyName:string,PolicyId:string,ExcludedGroups:string,ExcludedUsers:string) [@\"ENTER YOUR SAS URL HERE\"] with (format=\"csv\",ignoreFirstRecord=true);\r\nSigninLogs\r\n| where CorrelationId == \"{CorrelationId}\"\r\n| where AuthenticationRequirement == \"singleFactorAuthentication\"\r\n| where AppDisplayName == \"{App}\"\r\n| extend ConditionalAccessPolicies = todynamic(ConditionalAccessPolicies)\r\n| mv-expand ConditionalAccessPolicies\r\n| extend CAPolicyName = tostring(parse_json(ConditionalAccessPolicies).displayName)\r\n| extend CAResult = tostring(parse_json(ConditionalAccessPolicies).result)\r\n| where ConditionalAccessPolicies.conditionsSatisfied > 0\r\n| project TimeGenerated,CAPolicyName, CAResult, UserPrincipalName\r\n| join CASPFile on $left.CAPolicyName == $right.PolicyName\r\n| summarize ExcludedGroups = make_set(ExcludedGroups), ExcludedUsers = make_set(ExcludedUsers), arg_max(TimeGenerated,*) by CAPolicyName\r\n| project CAPolicyName, ExcludedGroups,ExcludedUsers,TimeGenerated,CAResult, PolicyId, UserPrincipalName\r\n| where ExcludedUsers has UserPrincipalName",
+              "query": "let CASPFile = externaldata (PolicyName:string,PolicyId:string,ExcludedGroups:string,ExcludedUsers:string) [@\"https://generalsentinel.blob.core.windows.net/sentinel/ConditionalAccessPolicyExclusions.csv?sp=r&st=2022-06-07T13:43:13Z&se=2029-06-07T21:43:13Z&spr=https&sv=2020-08-04&sr=b&sig=S%2BNpSgsIi%2FlGolhAz1y2EDZESKfrKs%2FMGHXNyMgXdho%3D\"] with (format=\"csv\",ignoreFirstRecord=true);\r\nSigninLogs\r\n| where CorrelationId == \"{CorrelationId}\"\r\n| where AuthenticationRequirement == \"singleFactorAuthentication\"\r\n| where AppDisplayName == \"{App}\"\r\n| extend ConditionalAccessPolicies = todynamic(ConditionalAccessPolicies)\r\n| mv-expand ConditionalAccessPolicies\r\n| extend CAPolicyName = tostring(parse_json(ConditionalAccessPolicies).displayName)\r\n| extend CAResult = tostring(parse_json(ConditionalAccessPolicies).result)\r\n| where ConditionalAccessPolicies.conditionsSatisfied > 0\r\n| project TimeGenerated,CAPolicyName, CAResult, UserPrincipalName\r\n| join CASPFile on $left.CAPolicyName == $right.PolicyName\r\n| summarize ExcludedGroups = make_set(ExcludedGroups), ExcludedUsers = make_set(ExcludedUsers), arg_max(TimeGenerated,*) by CAPolicyName\r\n| project CAPolicyName, ExcludedGroups,ExcludedUsers,TimeGenerated,CAResult, PolicyId, UserPrincipalName\r\n| where ExcludedUsers has UserPrincipalName",
               "size": 0,
               "showAnalytics": true,
               "title": "Matched Conditional Access Policies with Exclusions",
