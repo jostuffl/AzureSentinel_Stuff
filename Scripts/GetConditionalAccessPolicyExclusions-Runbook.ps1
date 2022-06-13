@@ -16,13 +16,13 @@ private key to Azure Automation and put the thumbprint for it in the script vari
 Import-Module ("Microsoft.Graph.Identity.SignIns","Microsoft.Graph.Users","Microsoft.Graph.Groups","Az.Storage")
 
 #Variables
-$SasToken = "YOUR SAS TOKEN"
-$StorageAccName = "YOUR STORAGE ACCOUNT NAME"
-$StorageContainer= "YOUR BLOG STORAGE CONTAINER NAME"
-$Cert = Get-AutomationCertificate -Name "YOUR AZURE AUTOMATION CERTIFICATE"
-$TenantId = "YOUR TENANT ID"
-$AppId = "YOUR APP ID"
-$CertificateThumbPrint = "YOUR AZURE AUTOMATION CERTIFICATE THUMBPRINT"
+$SasToken = "Your Sas Token"
+$StorageAccName = "Your Storage Account Name"
+$StorageContainer= "Your Blob container name"
+#$Cert = Get-AutomationCertificate -Name "Your automation certificate"
+$TenantId = "Tenant ID"
+$AppId = "App (also known as client) ID"
+$CertificateThumbPrint = "Certificate Thumbprint of your cert"
 
 
 # Connect to Graph with App Cert based auth
@@ -44,17 +44,35 @@ foreach ($Policy in $CAPs){
             ExcludedGroups = $GetGroup.DisplayName
             ExcludedUsers = $null
         }
+
         $PolicyArray.Add($PolicyObject) | out-null
     }
 
+
 # For each Conditional Access Policy, for each user excluded, create custom object and add to our array
     foreach($UserExclusion in $Policy.Conditions.Users.ExcludeUsers){
-        $GetUser = Get-mguser -userid $UserExclusion
-        $PolicyObject = [PSCustomObject]@{
+        if($UserExclusion -eq "GuestsOrExternalUsers"){
+            
+            $GetUser = "GuestsOrExternalUsers"
+
+            $PolicyObject = [PSCustomObject]@{
+            PolicyName = $Policy.DisplayName
+            PolicyId = $Policy.Id
+            ExcludedGroups = $null
+            ExcludedUsers = $GetUser
+
+            }
+        }
+        else{
+
+            $GetUser = Get-mguser -userid $UserExclusion
+
+            $PolicyObject = [PSCustomObject]@{
             PolicyName = $Policy.DisplayName
             PolicyId = $Policy.Id
             ExcludedGroups = $null
             ExcludedUsers = $GetUser.UserPrincipalName
+            }
         }
         $PolicyArray.Add($PolicyObject) | out-null        
     
