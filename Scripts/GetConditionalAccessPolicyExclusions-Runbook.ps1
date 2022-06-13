@@ -19,7 +19,7 @@ Import-Module ("Microsoft.Graph.Identity.SignIns","Microsoft.Graph.Users","Micro
 $SasToken = "Your Sas Token"
 $StorageAccName = "Your Storage Account Name"
 $StorageContainer= "Your Blob container name"
-#$Cert = Get-AutomationCertificate -Name "Your automation certificate"
+$Cert = Get-AutomationCertificate -Name "Your automation certificate"
 $TenantId = "Tenant ID"
 $AppId = "App (also known as client) ID"
 $CertificateThumbPrint = "Certificate Thumbprint of your cert"
