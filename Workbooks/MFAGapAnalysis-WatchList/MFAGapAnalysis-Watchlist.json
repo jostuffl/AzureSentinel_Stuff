@@ -1,0 +1,816 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "09060012-1a9b-46c2-a808-06eed756c11e",
+            "version": "KqlParameterItem/1.0",
+            "name": "Subscription",
+            "type": 6,
+            "isRequired": true,
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::1"
+              ],
+              "includeAll": true,
+              "showDefault": false
+            },
+            "defaultValue": "value::1"
+          },
+          {
+            "id": "8575be38-a3cc-42d9-8680-b86c7e635100",
+            "version": "KqlParameterItem/1.0",
+            "name": "Workspace",
+            "type": 5,
+            "isRequired": true,
+            "query": "where type =~ 'microsoft.operationalinsights/workspaces'\r\n| project value =id, label = name",
+            "crossComponentResources": [
+              "{Subscription}"
+            ],
+            "typeSettings": {
+              "resourceTypeFilter": {
+                "microsoft.operationalinsights/workspaces": true
+              },
+              "additionalResourceOptions": [
+                "value::1"
+              ],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "defaultValue": "value::1",
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources"
+          },
+          {
+            "id": "f0ea0edf-6716-46e7-87a6-195db56b7fee",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "type": 4,
+            "isRequired": true,
+            "value": {
+              "durationMs": 86400000
+            },
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 300000
+                },
+                {
+                  "durationMs": 900000
+                },
+                {
+                  "durationMs": 1800000
+                },
+                {
+                  "durationMs": 3600000
+                },
+                {
+                  "durationMs": 14400000
+                },
+                {
+                  "durationMs": 43200000
+                },
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 172800000
+                },
+                {
+                  "durationMs": 259200000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 1209600000
+                },
+                {
+                  "durationMs": 2419200000
+                },
+                {
+                  "durationMs": 2592000000
+                },
+                {
+                  "durationMs": 5184000000
+                },
+                {
+                  "durationMs": 7776000000
+                }
+              ],
+              "allowCustom": true
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            }
+          },
+          {
+            "id": "9dee73cf-8dc3-4360-b2de-7daed8319fe8",
+            "version": "KqlParameterItem/1.0",
+            "name": "User",
+            "type": 1,
+            "isGlobal": true,
+            "isHiddenWhenLocked": true,
+            "value": "."
+          }
+        ],
+        "style": "above",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters - 0"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "# MFA Gap Analysis Workbook\r\n\r\n----"
+      },
+      "name": "text - 3"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Description and Instructions:\r\n<div><span style=\"font-size:14px;\">\r\nThis workbook is meant to show where users are signing in with single factor authentication <br>\r\nIt will also show conditional access policies that matched the signin, but because of an exclusion for the user in the policy, was allowed. <br>\r\n<span style=\"color:red\">**Note:**</span> To see the conditional access policies with exclusions you must utilize the accompanying powershell script to gather the data, and logic app to create the watchlist.<br>\r\n\r\nYou can find the Powershell script for the conditional access exclusions **[On my Github Here](https://github.com/jostuffl/AzureSentinel_Stuff/blob/main/Scripts/ConditionalAccessExclusions_Watchlist.ps1)**\r\n<br>\r\n<br></span></div>\r\n\r\n### Usage Instructions\r\n<div><span style=\"font-size:14px;\">\r\nTo use this workbook start by selecting an application tile in the **\"Sign-ins by Application\"** visualization. <br>\r\nThe tiles for this visualization shown on the left are the total sign-ins,<br>\r\non the right total single factor sign-ins, and below sign-ins over time.<br>\r\nThis will populate the table **\"Sign-ins and Status by UPN\"** <br>\r\nNext expand a user account row and select a sign-in. <br>\r\nThe Geo Map will update with sign-in locations for that user (Previously showing all sign-ins and their locations.)<br>\r\nAdditionally if you are leveraging the accompanying powershell script\r\nthe last visualization will populate with any matched conditional access policies that <br>\r\nthe user has exclusions for.\r\nIn the last visualization make sure to update the second to last line with your domain name(s),\r\nso that it shows external vs internal users correctly.<br>\r\n<br>\r\nUse the UserPage to investigate by a user's UPN.\r\n</span></div>\r\n\r\n",
+        "style": "info"
+      },
+      "name": "Description and Usage",
+      "styleSettings": {
+        "padding": "50",
+        "showBorder": true
+      }
+    },
+    {
+      "type": 11,
+      "content": {
+        "version": "LinkItem/1.0",
+        "style": "tabs",
+        "links": [
+          {
+            "id": "af6b95f0-02af-4831-bfec-7df39d5bdbcb",
+            "cellValue": "Page",
+            "linkTarget": "parameter",
+            "linkLabel": "MainPage",
+            "subTarget": "MainPage",
+            "style": "link"
+          },
+          {
+            "id": "98538c52-9519-4225-af98-8fac7dc82277",
+            "cellValue": "Page",
+            "linkTarget": "parameter",
+            "linkLabel": "UserPage",
+            "subTarget": "UserPage",
+            "style": "link"
+          }
+        ]
+      },
+      "name": "links - 4"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Home Page",
+        "items": [
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| where ResultType == \"0\"\r\n| parse AuthenticationDetails with * '[' AuthDetails ']'\r\n| extend MfaDetail = iff( AuthenticationRequirement == \"singleFactorAuthentication\", \"Single Factor\", tostring(MfaDetail.authMethod))\r\n| project UserPrincipalName, ResultCode = ResultType, ResultDescription, App = AppDisplayName, AuthDetails ,AuthenticationRequirement, ClientAppUsed, DeviceDetail, IsInteractive,IPAddress, LocationDetails, MfaDetail,  Status\r\n| extend AuthenticationRequirement = iff(AuthenticationRequirement == \"singleFactorAuthentication\", \"Single-Factor\", \"Multi-Factor\")\r\n| summarize SigninCount = count() by AuthenticationRequirement",
+              "size": 0,
+              "title": "Sign-in Types",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "AuthenticationRequirement",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "SigninCount",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 2,
+                      "maximumSignificantDigits": 3
+                    }
+                  }
+                },
+                "showBorder": false
+              }
+            },
+            "customWidth": "10",
+            "name": "Sign-in Types"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| summarize AppCount = count() by App = AppDisplayName\r\n| join ( SigninLogs\r\n| extend App = AppDisplayName\r\n| make-series AppCountTimeLine= count() default = 0 on TimeGenerated from {TimeRange:start} to {TimeRange:end} step {TimeRange:grain} by App) on App\r\n| join ( SigninLogs\r\n| extend App = AppDisplayName\r\n| where AuthenticationRequirement == \"singleFactorAuthentication\"\r\n| where ResultType == \"0\"\r\n| summarize SingleFactor = count() by App) on App\r\n| project App, AppCount, AppCountTimeLine, SingleFactor",
+              "size": 0,
+              "title": "Sign-ins by Application",
+              "timeContextFromParameter": "TimeRange",
+              "exportFieldName": "App",
+              "exportParameterName": "App",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "tiles",
+              "sortBy": [],
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "App",
+                  "formatter": 1,
+                  "formatOptions": {
+                    "compositeBarSettings": {
+                      "labelText": "",
+                      "columnSettings": [
+                        {
+                          "columnName": "EventCount",
+                          "color": "redBright"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "leftContent": {
+                  "columnMatch": "AppCount",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "min": 0,
+                    "palette": "categorical"
+                  }
+                },
+                "rightContent": {
+                  "columnMatch": "SingleFactor",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "min": 0,
+                    "max": 1,
+                    "palette": "yellow"
+                  }
+                },
+                "secondaryContent": {
+                  "columnMatch": "AppCountTimeLine",
+                  "formatter": 9,
+                  "formatOptions": {
+                    "min": 0,
+                    "palette": "greenRed"
+                  }
+                },
+                "showBorder": true,
+                "size": "auto"
+              },
+              "chartSettings": {
+                "group": "EventID",
+                "createOtherGroup": 100,
+                "showLegend": true
+              }
+            },
+            "customWidth": "50",
+            "name": "Apps"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let CommonLocation = SigninLogs\r\n| extend User = iff(isnotempty(\"{User}\"),\"{User}\",\".\")\r\n| where UserPrincipalName has User\r\n| where AuthenticationRequirement == \"singleFactorAuthentication\"\r\n| extend LAT = round(todouble(LocationDetails.geoCoordinates.latitude), 1)\r\n| extend LONG = round(todouble(LocationDetails.geoCoordinates.longitude), 1)\r\n| summarize Count=count() by LAT, LONG\r\n| top 1 by Count;\r\nlet CommonLAT = toscalar(CommonLocation\r\n| project LAT);\r\nlet CommonLONG = toscalar(CommonLocation\r\n| project LONG);\r\nSigninLogs\r\n| extend User = iff(isnotempty(\"{User}\"),\"{User}\",\".\")\r\n| where UserPrincipalName contains User\r\n| where AuthenticationRequirement == \"singleFactorAuthentication\"\r\n| extend LAT = round(todouble(LocationDetails.geoCoordinates.latitude), 1)\r\n| extend LONG = round(todouble(LocationDetails.geoCoordinates.longitude), 1)\r\n| extend MilesFromTypicalLocation = geo_distance_2points(CommonLONG, CommonLAT, LONG, LAT) / 1000 * 0.62137\r\n| extend LocationString= strcat(tostring(LocationDetails[\"countryOrRegion\"]), \"/\", tostring(LocationDetails[\"state\"]), \"/\", tostring(LocationDetails[\"city\"]))\r\n| summarize Count=count() by IPAddress, MilesFromTypicalLocation, LAT, LONG, LocationString",
+              "size": 0,
+              "title": "Sign-in Locations",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "map",
+              "mapSettings": {
+                "locInfo": "LatLong",
+                "latitude": "LAT",
+                "longitude": "LONG",
+                "sizeSettings": "Count",
+                "sizeAggregation": "Sum",
+                "labelSettings": "LocationString",
+                "legendMetric": "Count",
+                "legendAggregation": "Sum",
+                "itemColorSettings": {
+                  "nodeColorField": "MilesFromTypicalLocation",
+                  "colorAggregation": "Sum",
+                  "type": "heatmap",
+                  "heatmapPalette": "greenRed"
+                }
+              }
+            },
+            "customWidth": "40",
+            "name": "Sign-in Location"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| where AuthenticationRequirement == \"singleFactorAuthentication\"\r\n| where AppDisplayName == \"{App}\"\r\n| parse AuthenticationDetails with * '[' AuthDetails ']'\r\n| where ResultType == \"0\"\r\n| extend MfaDetail = iff( AuthenticationRequirement == \"singleFactorAuthentication\", \"Single Factor\", tostring(MfaDetail.authMethod))\r\n| extend ConditionalAccess = iff(isempty(ConditionalAccessPolicies),\"No Conditional Access Data\",\"Conditional Access Data Available\")\r\n| extend AuthDetails = iff(isempty(AuthDetails),\"No Authentication Details for this event\",AuthDetails)\r\n| project TimeGenerated,UserPrincipalName, ResultCode = ResultType, ConditionalAccess, ResultDescription, App = AppDisplayName, AuthDetails ,AuthenticationRequirement, ClientAppUsed, DeviceDetail, IsInteractive,IPAddress, LocationDetails, MfaDetail, Status, CorrelationId",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Sign-ins and Status by UPN",
+              "noDataMessage": "No sign-ins found for TimeRange",
+              "timeContextFromParameter": "TimeRange",
+              "exportedParameters": [
+                {
+                  "fieldName": "UserPrincipalName",
+                  "parameterName": "User",
+                  "defaultValue": "."
+                },
+                {
+                  "fieldName": "CorrelationId",
+                  "parameterName": "CorrelationId",
+                  "parameterType": 1
+                },
+                {
+                  "fieldName": "UserPrincipalName",
+                  "parameterName": "UserPrincipalName",
+                  "parameterType": 1
+                }
+              ],
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "ResultCode",
+                    "formatter": 5,
+                    "formatOptions": {
+                      "customColumnWidthSetting": "25ch"
+                    }
+                  },
+                  {
+                    "columnMatch": "ResultDescription",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "is Empty",
+                          "representation": "success",
+                          "text": "Success"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "3",
+                          "text": "Failed: {0}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "App",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "AuthDetails",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkLabel": "view",
+                      "linkIsContextBlade": true
+                    }
+                  },
+                  {
+                    "columnMatch": "AuthenticationRequirement",
+                    "formatter": 5,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkIsContextBlade": true
+                    }
+                  },
+                  {
+                    "columnMatch": "DeviceDetail",
+                    "formatter": 5,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkIsContextBlade": true
+                    }
+                  },
+                  {
+                    "columnMatch": "LocationDetails",
+                    "formatter": 5,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkIsContextBlade": true
+                    }
+                  },
+                  {
+                    "columnMatch": "Status",
+                    "formatter": 5,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkIsContextBlade": true
+                    }
+                  },
+                  {
+                    "columnMatch": "AuthenticationProcessingDetails",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkIsContextBlade": false
+                    }
+                  },
+                  {
+                    "columnMatch": "AuthenticationDetails",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkIsContextBlade": true
+                    }
+                  },
+                  {
+                    "columnMatch": "AuthProcDetails",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkLabel": "view",
+                      "linkIsContextBlade": true
+                    }
+                  }
+                ],
+                "hierarchySettings": {
+                  "treeType": 1,
+                  "groupBy": [
+                    "UserPrincipalName"
+                  ],
+                  "finalBy": "App"
+                },
+                "sortBy": [
+                  {
+                    "itemKey": "TimeGenerated",
+                    "sortOrder": 2
+                  }
+                ]
+              },
+              "sortBy": [
+                {
+                  "itemKey": "TimeGenerated",
+                  "sortOrder": 2
+                }
+              ]
+            },
+            "showPin": false,
+            "name": "Sign-ins"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Watchlist = (_GetWatchlist('CAExclusions1')); //Change this value to whatever your watchlist alias is\r\nlet UserGroups = \r\n    IdentityInfo\r\n    | where TimeGenerated > ago(30d)\r\n    | where AccountUPN has \"{UserPrincipalName}\"\r\n    | summarize arg_max(TimeGenerated, *) by AccountUPN\r\n    | mv-expand GroupMembership\r\n    | distinct tostring(GroupMembership);\r\nlet CASPFile = \r\n    Watchlist\r\n    | extend ExcludedGroups = iff(ExcludedGroups in(UserGroups),strcat(\"User in group: \",ExcludedGroups),strcat(\"User not in group: \",ExcludedGroups))\r\n    | extend ExcludedGroups = iff(ExcludedGroups == \"User not in group: NA\",\"\",ExcludedGroups)\r\n    | summarize ExcludedGroups = make_set_if(ExcludedGroups,isnotempty(ExcludedGroups)) by PolicyName;\r\nlet CASPFile2 = \r\n    Watchlist\r\n    | summarize ExcludedUsers= make_set_if(ExcludedUsers,isnotempty(ExcludedUsers)) by PolicyName;\r\nSigninLogs\r\n| where CorrelationId == \"{CorrelationId}\"\r\n| where UserPrincipalName has \"{UserPrincipalName}\"\r\n| extend ConditionalAccessPolicies = todynamic(ConditionalAccessPolicies)\r\n| mv-expand ConditionalAccessPolicies\r\n| extend CAPolicyName = tostring(parse_json(ConditionalAccessPolicies).displayName)\r\n| extend CAResult = tostring(parse_json(ConditionalAccessPolicies).result)\r\n| where ConditionalAccessPolicies.conditionsSatisfied > 0\r\n| join CASPFile on $left.CAPolicyName == $right.PolicyName\r\n| join CASPFile2 on $left.CAPolicyName == $right.PolicyName\r\n| summarize arg_max(TimeGenerated, *) by CAPolicyName\r\n| project TimeGenerated,CAPolicyName, UserPrincipalName, ExcludedUsers, ExcludedGroups\r\n| extend UserType = iff(UserPrincipalName !has \"sillysite2.com\" or UserPrincipalName contains \"#EXT\",\"External\",\"Internal\") //change sillysite2.com to your domain (optionally you could use a watchlist with multiple domains)\r\n| extend GuestExclusion = iff(UserType == \"External\" and ExcludedUsers has \"GuestsOrExternalUsers\", \"True\",\"False\")",
+              "size": 0,
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "ExcludedGroups",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkLabel": "View",
+                      "linkIsContextBlade": true
+                    }
+                  },
+                  {
+                    "columnMatch": "ExcludedUsers",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkLabel": "View",
+                      "linkIsContextBlade": true
+                    }
+                  }
+                ]
+              }
+            },
+            "name": "query - 5"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Page",
+        "comparison": "isEqualTo",
+        "value": "MainPage"
+      },
+      "name": "HomePage"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 9,
+            "content": {
+              "version": "KqlParameterItem/1.0",
+              "parameters": [
+                {
+                  "id": "d82eb4a4-4a35-4afe-9b46-95891d4537ec",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "UserUPN",
+                  "type": 1,
+                  "description": "Enter a user's UPN",
+                  "isRequired": true,
+                  "value": "",
+                  "timeContext": {
+                    "durationMs": 86400000
+                  }
+                }
+              ],
+              "style": "pills",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "name": "parameters - 0"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| where UserPrincipalName has \"{UserUPN}\"\r\n| where ResultType == \"0\"\r\n//| parse AuthenticationDetails with * '[' AuthDetails ']'\r\n//| extend MfaDetail = iff( AuthenticationRequirement == \"singleFactorAuthentication\", \"Single Factor\", tostring(MfaDetail.authMethod))\r\n//| project UserPrincipalName, ResultCode = ResultType, ResultDescription, App = AppDisplayName, AuthDetails ,AuthenticationRequirement, ClientAppUsed, DeviceDetail, IsInteractive,IPAddress, LocationDetails, MfaDetail,  Status\r\n| extend AuthenticationRequirement = iff(AuthenticationRequirement == \"singleFactorAuthentication\", \"Single-Factor\", \"Multi-Factor\")\r\n| summarize SigninCount = count() by AuthenticationRequirement",
+              "size": 0,
+              "title": "Sign-ins count by Type",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": false,
+                "titleContent": {
+                  "columnMatch": "AuthenticationRequirement",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "SigninCount",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "maximumSignificantDigits": 3,
+                      "maximumFractionDigits": 2
+                    }
+                  }
+                }
+              }
+            },
+            "customWidth": "10",
+            "name": "Sign-inCount"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| where UserPrincipalName has \"{UserUPN}\"\r\n| where ResultType == \"0\"\r\n| summarize AppCount = count() by App = AppDisplayName\r\n| join ( \r\n    SigninLogs\r\n    | where UserPrincipalName has \"{UserUPN}\"\r\n    | where ResultType == \"0\"\r\n    | extend App = AppDisplayName\r\n    | make-series AppCountTimeLine= count() default = 0 on TimeGenerated from {TimeRange:start} to {TimeRange:end} step {TimeRange:grain} by App) on App\r\n| join ( \r\n    SigninLogs\r\n    | where UserPrincipalName has \"{UserUPN}\"\r\n    | where ResultType == \"0\"\r\n    | extend App = AppDisplayName\r\n    | where AuthenticationRequirement == \"singleFactorAuthentication\"\r\n    | summarize SingleFactor = count() by App) on App\r\n| project App, AppCount, AppCountTimeLine, SingleFactor",
+              "size": 0,
+              "title": "Sign-ins by Application",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "App",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "AppCount",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "maximumSignificantDigits": 3,
+                      "maximumFractionDigits": 2
+                    }
+                  }
+                },
+                "rightContent": {
+                  "columnMatch": "SingleFactor",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  }
+                },
+                "secondaryContent": {
+                  "columnMatch": "AppCountTimeLine",
+                  "formatter": 9,
+                  "formatOptions": {
+                    "palette": "greenRed"
+                  }
+                },
+                "showBorder": false
+              }
+            },
+            "customWidth": "40",
+            "name": "Sign-ins by Application"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let CommonLocation = SigninLogs\r\n| extend User = iff(isnotempty(\"{UserUPN}\"),\"{UserUPN}\",\".\")\r\n| where UserPrincipalName contains User\r\n| where AuthenticationRequirement == \"singleFactorAuthentication\"\r\n| extend LAT = round(todouble(LocationDetails.geoCoordinates.latitude), 1)\r\n| extend LONG = round(todouble(LocationDetails.geoCoordinates.longitude), 1)\r\n| summarize Count=count() by LAT, LONG\r\n| top 1 by Count;\r\nlet CommonLAT = toscalar(CommonLocation\r\n| project LAT);\r\nlet CommonLONG = toscalar(CommonLocation\r\n| project LONG);\r\nSigninLogs\r\n| extend User = iff(isnotempty(\"{UserUPN}\"),\"{UserUPN}\",\".\")\r\n| where ResultType == \"0\"\r\n| where UserPrincipalName has User\r\n| where AuthenticationRequirement == \"singleFactorAuthentication\"\r\n| extend LAT = round(todouble(LocationDetails.geoCoordinates.latitude), 1)\r\n| extend LONG = round(todouble(LocationDetails.geoCoordinates.longitude), 1)\r\n| extend MilesFromTypicalLocation = geo_distance_2points(CommonLONG, CommonLAT, LONG, LAT) / 1000 * 0.62137\r\n| extend LocationString= strcat(tostring(LocationDetails[\"countryOrRegion\"]), \"/\", tostring(LocationDetails[\"state\"]), \"/\", tostring(LocationDetails[\"city\"]))\r\n| summarize Count=count() by IPAddress, MilesFromTypicalLocation, LAT, LONG, LocationString",
+              "size": 0,
+              "title": "Sign-in Location - User",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "map",
+              "mapSettings": {
+                "locInfo": "LatLong",
+                "latitude": "LAT",
+                "longitude": "LONG",
+                "sizeSettings": "Count",
+                "sizeAggregation": "Sum",
+                "labelSettings": "LocationString",
+                "legendMetric": "Count",
+                "legendAggregation": "Sum",
+                "itemColorSettings": {
+                  "nodeColorField": "MilesFromTypicalLocation",
+                  "colorAggregation": "Sum",
+                  "type": "heatmap",
+                  "heatmapPalette": "greenRed"
+                }
+              }
+            },
+            "customWidth": "50",
+            "name": "Sign-in Location"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| where AuthenticationRequirement == \"singleFactorAuthentication\"\r\n| where UserPrincipalName has \"{UserUPN}\"\r\n| parse AuthenticationDetails with * '[' AuthDetails ']'\r\n| where ResultType == \"0\"\r\n| extend MfaDetail = iff( AuthenticationRequirement == \"singleFactorAuthentication\", \"Single Factor\", tostring(MfaDetail.authMethod))\r\n| extend ConditionalAccess = iff(isempty(ConditionalAccessPolicies),\"No Conditional Access Data\",\"Conditional Access Data Available\")\r\n| extend AuthDetails = iff(isempty(AuthDetails),\"No Authentication Details for this event\",AuthDetails)\r\n| project TimeGenerated,UserPrincipalName, ResultCode = ResultType, ConditionalAccess, ResultDescription, App = AppDisplayName, AuthDetails, ClientAppUsed, DeviceDetail, IsInteractive,IPAddress, LocationDetails, MfaDetail, CorrelationId",
+              "size": 0,
+              "title": "Sign-ins by Application",
+              "timeContextFromParameter": "TimeRange",
+              "exportFieldName": "CorrelationId",
+              "exportParameterName": "CorrelationId",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "UserPrincipalName",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "ResultCode",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "ResultDescription",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "App",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "AuthDetails",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkLabel": "View",
+                      "linkIsContextBlade": true
+                    }
+                  },
+                  {
+                    "columnMatch": "DeviceDetail",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkLabel": "View",
+                      "linkIsContextBlade": true
+                    }
+                  },
+                  {
+                    "columnMatch": "LocationDetails",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkLabel": "View",
+                      "linkIsContextBlade": true
+                    }
+                  },
+                  {
+                    "columnMatch": "MfaDetail",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkLabel": "View",
+                      "linkIsContextBlade": true
+                    }
+                  },
+                  {
+                    "columnMatch": "CorrelationId",
+                    "formatter": 5
+                  }
+                ],
+                "hierarchySettings": {
+                  "treeType": 1,
+                  "groupBy": [
+                    "App"
+                  ]
+                }
+              }
+            },
+            "name": "Sign-insByApp"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Watchlist = (_GetWatchlist('CAExclusions1')); //Change this value to whatever your watchlist alias is\r\nlet UserGroups = \r\n    IdentityInfo\r\n    | where TimeGenerated > ago(30d)\r\n    | where AccountUPN has \"{UserUPN}\"\r\n    | summarize arg_max(TimeGenerated, *) by AccountUPN\r\n    | mv-expand GroupMembership\r\n    | distinct tostring(GroupMembership);\r\nlet CASPFile = \r\n    Watchlist\r\n    | extend ExcludedGroups = iff(ExcludedGroups in(UserGroups),strcat(\"User in group: \",ExcludedGroups),strcat(\"User not in group: \",ExcludedGroups))\r\n    | extend ExcludedGroups = iff(ExcludedGroups == \"User not in group: NA\",\"\",ExcludedGroups)\r\n    | summarize ExcludedGroups = make_set_if(ExcludedGroups,isnotempty(ExcludedGroups)) by PolicyName;\r\nlet CASPFile2 = \r\n    Watchlist\r\n    | where ExcludedUsers != \"NA\"\r\n    | summarize ExcludedUsers= make_set_if(ExcludedUsers,isnotempty(ExcludedUsers)) by PolicyName;\r\nSigninLogs\r\n| where CorrelationId == \"{CorrelationId}\"\r\n| where UserPrincipalName has \"{UserUPN}\"\r\n| extend ConditionalAccessPolicies = todynamic(ConditionalAccessPolicies)\r\n| mv-expand ConditionalAccessPolicies\r\n| extend CAPolicyName = tostring(parse_json(ConditionalAccessPolicies).displayName)\r\n| extend CAResult = tostring(parse_json(ConditionalAccessPolicies).result)\r\n| where ConditionalAccessPolicies.conditionsSatisfied > 0\r\n| join CASPFile on $left.CAPolicyName == $right.PolicyName\r\n| join CASPFile2 on $left.CAPolicyName == $right.PolicyName\r\n| summarize arg_max(TimeGenerated, *) by CAPolicyName\r\n| project TimeGenerated,CAPolicyName, UserPrincipalName, ExcludedUsers, ExcludedGroups\r\n| extend UserType = iff(UserPrincipalName !has \"sillysite2.com\" or UserPrincipalName contains \"#EXT\",\"External\",\"Internal\") //change sillysite2.com to your domain (optionally you could use a watchlist with multiple domains)\r\n| extend GuestExclusion = iff(UserType == \"External\" and ExcludedUsers has \"GuestsOrExternalUsers\", \"True\",\"False\")",
+              "size": 0,
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "ExcludedUsers",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkLabel": "View",
+                      "linkIsContextBlade": true
+                    }
+                  },
+                  {
+                    "columnMatch": "ExcludedGroups",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkLabel": "View",
+                      "linkIsContextBlade": true
+                    }
+                  }
+                ]
+              }
+            },
+            "name": "query - 5"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Page",
+        "comparison": "isEqualTo",
+        "value": "UserPage"
+      },
+      "name": "UserPage"
+    }
+  ],
+  "fallbackResourceIds": [
+    "/subscriptions/5aa2c531-f573-468b-b152-cf8fdd0ca5b9/resourcegroups/jtst1-log/providers/microsoft.operationalinsights/workspaces/sentinellab1"
+  ],
+  "fromTemplateId": "sentinel-UserWorkbook",
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
