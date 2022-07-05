@@ -9,7 +9,7 @@ Param (
 
 )
 
-$myCredential = Get-AutomationPSCredential -Name 'HybridWorkerCred'
+$myCredential = Get-AutomationPSCredential -Name 'Your Hybrid Worker Credential Name'
 
 Import-Module ActiveDirectory 
 
