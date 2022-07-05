@@ -1,0 +1,280 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "metadata": {
+        "title": "",
+        "description": "",
+        "prerequisites": "",
+    "postDeployment": [],
+    "prerequisitesDeployTemplateFile": "",
+    "lastUpdateTime": "",
+"entities": [],
+"tags": [],
+"support": {
+"tier": "community",
+"armtemplate": "Generated from https://github.com/Azure/Azure-Sentinel/tree/master/Tools/Playbook-ARM-Template-Generator"
+},
+"author": {
+"name": ""
+}
+},
+"parameters": {
+"PlaybookName": {
+"defaultValue": "ConditionalAccessExclusions",
+"type": "string"
+},
+"SentinelResourceGroup": {
+"type": "string",
+"metadata": {
+    "description": "Enter value for SentinelResourceGroup"
+}
+},
+"SentinelWorkspaceId": {
+"type": "string",
+"metadata": {
+    "description": "Enter value for SentinelWorkspaceId"
+}
+},
+"SubscriptionID": {
+"type": "string",
+"metadata": {
+    "description": "Enter value for SubscriptionID"
+}
+},
+"WatchlistAlias": {
+"type": "string",
+"metadata": {
+    "description": "Enter value for WatchlistAlias"
+}
+}
+},
+"variables": {
+"MicrosoftSentinelConnectionName": "[concat('MicrosoftSentinel-', parameters('PlaybookName'))]"
+},
+"resources": [
+{
+"properties": {
+    "provisioningState": "Succeeded",
+    "state": "Enabled",
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "parameters": {
+            "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        },
+        "SentinelResourceGroup": {
+            "defaultValue": "[parameters('SentinelResourceGroup')]",
+            "type": "string"
+        },
+        "SentinelWorkspaceId": {
+            "defaultValue": "[parameters('SentinelWorkspaceId')]",
+            "type": "string"
+        },
+        "SubscriptionID": {
+            "defaultValue": "[parameters('SubscriptionID')]",
+            "type": "string"
+        },
+        "WatchlistAlias": {
+            "defaultValue": "[parameters('WatchlistAlias')]",
+            "type": "string"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "type": "Request",
+            "kind": "Http",
+            "inputs": {
+                "method": "POST",
+            "schema": {}
+        }
+    }
+},
+"actions": {
+    "Condition": {
+        "actions": {
+            "Watchlists_-_Create_a_new_watchlist_with_data_(Raw_Content)": {
+            "runAfter": {},
+            "type": "ApiConnection",
+            "inputs": {
+                "body": {
+                    "description": "List of users / groups that are excluded from conditional access policies",
+                    "displayName": "ConditionalAccessExclusions",
+                    "itemsSearchKey": "PolicyName",
+                    "rawContent": "@{body('Create_CSV_table')}",
+                    "source": "Playbook"
+                },
+                "host": {
+                    "connection": {
+                        "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                    }
+                },
+                "method": "put",
+                "path": "/Watchlists/subscriptions/@{encodeURIComponent(parameters('SubscriptionID'))}/resourceGroups/@{encodeURIComponent(parameters('SentinelResourceGroup'))}/workspaces/@{encodeURIComponent(parameters('SentinelWorkspaceId'))}/watchlists/@{encodeURIComponent(parameters('WatchlistAlias'))}"
+            }
+        }
+    },
+    "runAfter": {
+        "Watchlists_-_Get_a_watchlist_by_alias": [
+            "Succeeded",
+            "TimedOut",
+            "Failed"
+        ]
+    },
+    "expression": {
+        "and": [
+            {
+                "equals": [
+                    "@body('Watchlists_-_Get_a_watchlist_by_alias')?['properties']?['watchlistId']",
+                    "@null"
+                ]
+            }
+        ]
+    },
+    "type": "If"
+},
+"Create_CSV_table": {
+    "runAfter": {
+        "Parse_JSON": [
+            "Succeeded"
+        ]
+    },
+    "type": "Table",
+    "inputs": {
+        "format": "CSV",
+        "from": "@body('Parse_JSON')"
+    }
+},
+"Delay": {
+    "runAfter": {
+        "Watchlists_-_Delete_a_watchlist": [
+            "Succeeded",
+            "Failed"
+        ]
+    },
+    "type": "Wait",
+    "inputs": {
+        "interval": {
+            "count": 2,
+            "unit": "Minute"
+        }
+    }
+},
+"Parse_JSON": {
+"runAfter": {},
+"type": "ParseJson",
+"inputs": {
+    "content": "@triggerBody()",
+    "schema": {
+        "items": {
+            "properties": {
+            "ExcludedGroups": {},
+            "ExcludedUsers": {
+                "type": "string"
+            },
+            "PolicyId": {
+                "type": "string"
+            },
+            "PolicyName": {
+                "type": "string"
+            }
+        },
+        "required": [
+            "PolicyName",
+            "PolicyId",
+            "ExcludedGroups",
+            "ExcludedUsers"
+        ],
+        "type": "object"
+    },
+    "type": "array"
+}
+}
+},
+"Watchlists_-_Delete_a_watchlist": {
+"runAfter": {
+"Create_CSV_table": [
+    "Succeeded"
+]
+},
+"type": "ApiConnection",
+"inputs": {
+"host": {
+    "connection": {
+        "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+    }
+},
+"method": "delete",
+"path": "/Watchlists/subscriptions/@{encodeURIComponent(parameters('SubscriptionID'))}/resourceGroups/@{encodeURIComponent(parameters('SentinelResourceGroup'))}/workspaces/@{encodeURIComponent(parameters('SentinelWorkspaceId'))}/watchlists/@{encodeURIComponent(parameters('WatchlistAlias'))}"
+}
+},
+"Watchlists_-_Get_a_watchlist_by_alias": {
+"runAfter": {
+"Delay": [
+    "Succeeded"
+]
+},
+"type": "ApiConnection",
+"inputs": {
+"host": {
+    "connection": {
+        "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+    }
+},
+"method": "get",
+"path": "/Watchlists/subscriptions/@{encodeURIComponent(parameters('SubscriptionID'))}/resourceGroups/@{encodeURIComponent(parameters('SentinelResourceGroup'))}/workspaces/@{encodeURIComponent(parameters('SentinelWorkspaceId'))}/watchlists/@{encodeURIComponent(parameters('WatchlistAlias'))}"
+}
+}
+},
+"outputs": {}
+},
+"parameters": {
+"$connections": {
+"value": {
+"azuresentinel_1": {
+"connectionId": "[resourceId('Microsoft.Web/connections', variables('MicrosoftSentinelConnectionName'))]",
+"connectionName": "[variables('MicrosoftSentinelConnectionName')]",
+"id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Azuresentinel')]",
+"connectionProperties": {
+"authentication": {
+    "type": "ManagedServiceIdentity"
+}
+}
+}
+}
+}
+}
+},
+"name": "[parameters('PlaybookName')]",
+"type": "Microsoft.Logic/workflows",
+"location": "[resourceGroup().location]",
+"identity": {
+"type": "SystemAssigned"
+},
+"tags": {
+"hidden-SentinelTemplateName": "ConditionalAccessExclusions",
+"hidden-SentinelTemplateVersion": "1.0"
+},
+"apiVersion": "2017-07-01",
+"dependsOn": [
+"[resourceId('Microsoft.Web/connections', variables('MicrosoftSentinelConnectionName'))]"
+]
+},
+{
+"type": "Microsoft.Web/connections",
+"apiVersion": "2016-06-01",
+"name": "[variables('MicrosoftSentinelConnectionName')]",
+"location": "[resourceGroup().location]",
+"kind": "V1",
+"properties": {
+"displayName": "[variables('MicrosoftSentinelConnectionName')]",
+"customParameterValues": {},
+"parameterValueType": "Alternative",
+"api": {
+"id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Azuresentinel')]"
+}
+}
+}
+]
+}
