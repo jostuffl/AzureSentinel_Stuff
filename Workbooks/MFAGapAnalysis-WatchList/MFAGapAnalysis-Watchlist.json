@@ -463,15 +463,15 @@
                 },
                 "sortBy": [
                   {
-                    "itemKey": "TimeGenerated",
-                    "sortOrder": 2
+                    "itemKey": "$gen_count_$gen_group_0",
+                    "sortOrder": 1
                   }
                 ]
               },
               "sortBy": [
                 {
-                  "itemKey": "TimeGenerated",
-                  "sortOrder": 2
+                  "itemKey": "$gen_count_$gen_group_0",
+                  "sortOrder": 1
                 }
               ]
             },
@@ -482,7 +482,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let Watchlist = (_GetWatchlist('CAExclusions1')); //Change this value to whatever your watchlist alias is\r\nlet UserGroups = \r\n    IdentityInfo\r\n    | where TimeGenerated > ago(30d)\r\n    | where AccountUPN has \"{UserPrincipalName}\"\r\n    | summarize arg_max(TimeGenerated, *) by AccountUPN\r\n    | mv-expand GroupMembership\r\n    | distinct tostring(GroupMembership);\r\nlet CASPFile = \r\n    Watchlist\r\n    | extend ExcludedGroups = iff(ExcludedGroups in(UserGroups),strcat(\"User in group: \",ExcludedGroups),strcat(\"User not in group: \",ExcludedGroups))\r\n    | extend ExcludedGroups = iff(ExcludedGroups == \"User not in group: NA\",\"\",ExcludedGroups)\r\n    | summarize ExcludedGroups = make_set_if(ExcludedGroups,isnotempty(ExcludedGroups)) by PolicyName;\r\nlet CASPFile2 = \r\n    Watchlist\r\n    | summarize ExcludedUsers= make_set_if(ExcludedUsers,isnotempty(ExcludedUsers)) by PolicyName;\r\nSigninLogs\r\n| where CorrelationId == \"{CorrelationId}\"\r\n| where UserPrincipalName has \"{UserPrincipalName}\"\r\n| extend ConditionalAccessPolicies = todynamic(ConditionalAccessPolicies)\r\n| mv-expand ConditionalAccessPolicies\r\n| extend CAPolicyName = tostring(parse_json(ConditionalAccessPolicies).displayName)\r\n| extend CAResult = tostring(parse_json(ConditionalAccessPolicies).result)\r\n| where ConditionalAccessPolicies.conditionsSatisfied > 0\r\n| join CASPFile on $left.CAPolicyName == $right.PolicyName\r\n| join CASPFile2 on $left.CAPolicyName == $right.PolicyName\r\n| summarize arg_max(TimeGenerated, *) by CAPolicyName\r\n| project TimeGenerated,CAPolicyName, UserPrincipalName, ExcludedUsers, ExcludedGroups\r\n| extend UserType = iff(UserPrincipalName !has \"sillysite2.com\" or UserPrincipalName contains \"#EXT\",\"External\",\"Internal\") //change sillysite2.com to your domain (optionally you could use a watchlist with multiple domains)\r\n| extend GuestExclusion = iff(UserType == \"External\" and ExcludedUsers has \"GuestsOrExternalUsers\", \"True\",\"False\")",
+              "query": "let Watchlist = (_GetWatchlist('CAExclusions1')); //Change this value to whatever your watchlist alias is\r\nlet UserGroups = \r\n    IdentityInfo\r\n    | where TimeGenerated > ago(30d)\r\n    | where AccountUPN has \"{UserPrincipalName}\"\r\n    | summarize arg_max(TimeGenerated, *) by AccountUPN\r\n    | mv-expand GroupMembership\r\n    | distinct tostring(GroupMembership);\r\nlet CASPFile = \r\n    Watchlist\r\n    | extend ExcludedGroups = iff(ExcludedGroups in(UserGroups),strcat(\"User in group: \",ExcludedGroups),strcat(\"User not in group: \",ExcludedGroups))\r\n    | extend ExcludedGroups = iff(ExcludedGroups == \"User not in group: NA\",\"\",ExcludedGroups)\r\n    | summarize ExcludedGroups = make_set_if(ExcludedGroups,isnotempty(ExcludedGroups)) by PolicyName;\r\nlet CASPFile2 = \r\n    Watchlist\r\n    | summarize ExcludedUsers= make_set_if(ExcludedUsers,isnotempty(ExcludedUsers)) by PolicyName;\r\nSigninLogs\r\n| where CorrelationId == \"{CorrelationId}\"\r\n| where UserPrincipalName has \"{UserPrincipalName}\"\r\n| extend ConditionalAccessPolicies = todynamic(ConditionalAccessPolicies)\r\n| mv-expand ConditionalAccessPolicies\r\n| extend CAPolicyName = tostring(parse_json(ConditionalAccessPolicies).displayName)\r\n| extend CAResult = tostring(parse_json(ConditionalAccessPolicies).result)\r\n| where ConditionalAccessPolicies.conditionsSatisfied > 0\r\n| join CASPFile on $left.CAPolicyName == $right.PolicyName\r\n| join CASPFile2 on $left.CAPolicyName == $right.PolicyName\r\n// Line below was added so that this query only shows conditional access policies the user matched and was excluded\r\n| where ExcludedUsers has \"{UserPrincipalName}\" or ExcludedGroups has \"User in group:\"\r\n| summarize arg_max(TimeGenerated, *) by CAPolicyName\r\n| project TimeGenerated,CAPolicyName, UserPrincipalName, ExcludedUsers, ExcludedGroups\r\n| extend UserType = iff(UserPrincipalName !has \"sillysite2.com\" or UserPrincipalName contains \"#EXT\",\"External\",\"Internal\") //change sillysite2.com to your domain (optionally you could use a watchlist with multiple domains)\r\n| extend GuestExclusion = iff(UserType == \"External\" and ExcludedUsers has \"GuestsOrExternalUsers\", \"True\",\"False\")",
               "size": 0,
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
@@ -765,7 +765,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let Watchlist = (_GetWatchlist('CAExclusions1')); //Change this value to whatever your watchlist alias is\r\nlet UserGroups = \r\n    IdentityInfo\r\n    | where TimeGenerated > ago(30d)\r\n    | where AccountUPN has \"{UserUPN}\"\r\n    | summarize arg_max(TimeGenerated, *) by AccountUPN\r\n    | mv-expand GroupMembership\r\n    | distinct tostring(GroupMembership);\r\nlet CASPFile = \r\n    Watchlist\r\n    | extend ExcludedGroups = iff(ExcludedGroups in(UserGroups),strcat(\"User in group: \",ExcludedGroups),strcat(\"User not in group: \",ExcludedGroups))\r\n    | extend ExcludedGroups = iff(ExcludedGroups == \"User not in group: NA\",\"\",ExcludedGroups)\r\n    | summarize ExcludedGroups = make_set_if(ExcludedGroups,isnotempty(ExcludedGroups)) by PolicyName;\r\nlet CASPFile2 = \r\n    Watchlist\r\n    | where ExcludedUsers != \"NA\"\r\n    | summarize ExcludedUsers= make_set_if(ExcludedUsers,isnotempty(ExcludedUsers)) by PolicyName;\r\nSigninLogs\r\n| where CorrelationId == \"{CorrelationId}\"\r\n| where UserPrincipalName has \"{UserUPN}\"\r\n| extend ConditionalAccessPolicies = todynamic(ConditionalAccessPolicies)\r\n| mv-expand ConditionalAccessPolicies\r\n| extend CAPolicyName = tostring(parse_json(ConditionalAccessPolicies).displayName)\r\n| extend CAResult = tostring(parse_json(ConditionalAccessPolicies).result)\r\n| where ConditionalAccessPolicies.conditionsSatisfied > 0\r\n| join CASPFile on $left.CAPolicyName == $right.PolicyName\r\n| join CASPFile2 on $left.CAPolicyName == $right.PolicyName\r\n| summarize arg_max(TimeGenerated, *) by CAPolicyName\r\n| project TimeGenerated,CAPolicyName, UserPrincipalName, ExcludedUsers, ExcludedGroups\r\n| extend UserType = iff(UserPrincipalName !has \"sillysite2.com\" or UserPrincipalName contains \"#EXT\",\"External\",\"Internal\") //change sillysite2.com to your domain (optionally you could use a watchlist with multiple domains)\r\n| extend GuestExclusion = iff(UserType == \"External\" and ExcludedUsers has \"GuestsOrExternalUsers\", \"True\",\"False\")",
+              "query": "let Watchlist = (_GetWatchlist('CAExclusions1')); //Change this value to whatever your watchlist alias is\r\nlet UserGroups = \r\n    IdentityInfo\r\n    | where TimeGenerated > ago(30d)\r\n    | where AccountUPN has \"{UserUPN}\"\r\n    | summarize arg_max(TimeGenerated, *) by AccountUPN\r\n    | mv-expand GroupMembership\r\n    | distinct tostring(GroupMembership);\r\nlet CASPFile = \r\n    Watchlist\r\n    | extend ExcludedGroups = iff(ExcludedGroups in(UserGroups),strcat(\"User in group: \",ExcludedGroups),strcat(\"User not in group: \",ExcludedGroups))\r\n    | extend ExcludedGroups = iff(ExcludedGroups == \"User not in group: NA\",\"\",ExcludedGroups)\r\n    | summarize ExcludedGroups = make_set_if(ExcludedGroups,isnotempty(ExcludedGroups)) by PolicyName;\r\nlet CASPFile2 = \r\n    Watchlist\r\n    | where ExcludedUsers != \"NA\"\r\n    | summarize ExcludedUsers= make_set_if(ExcludedUsers,isnotempty(ExcludedUsers)) by PolicyName;\r\nSigninLogs\r\n| where CorrelationId == \"{CorrelationId}\"\r\n| where UserPrincipalName has \"{UserUPN}\"\r\n| extend ConditionalAccessPolicies = todynamic(ConditionalAccessPolicies)\r\n| mv-expand ConditionalAccessPolicies\r\n| extend CAPolicyName = tostring(parse_json(ConditionalAccessPolicies).displayName)\r\n| extend CAResult = tostring(parse_json(ConditionalAccessPolicies).result)\r\n| where ConditionalAccessPolicies.conditionsSatisfied > 0\r\n| join CASPFile on $left.CAPolicyName == $right.PolicyName\r\n| join CASPFile2 on $left.CAPolicyName == $right.PolicyName\r\n// Line below was added so that this query only shows conditional access policies the user matched and was excluded\r\n| where ExcludedUsers has \"{UserUPN}\" or ExcludedGroups has \"User in group:\"\r\n| summarize arg_max(TimeGenerated, *) by CAPolicyName\r\n| project TimeGenerated,CAPolicyName, UserPrincipalName, ExcludedUsers, ExcludedGroups\r\n| extend UserType = iff(UserPrincipalName !has \"sillysite2.com\" or UserPrincipalName contains \"#EXT\",\"External\",\"Internal\") //change sillysite2.com to your domain (optionally you could use a watchlist with multiple domains)\r\n| extend GuestExclusion = iff(UserType == \"External\" and ExcludedUsers has \"GuestsOrExternalUsers\", \"True\",\"False\")",
               "size": 0,
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
@@ -797,6 +797,48 @@
               }
             },
             "name": "query - 5"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityAlert\r\n| where Entities has \"{UserUPN}\"\r\n| extend Ents = Entities\r\n| mvexpand todynamic(Entities)\r\n| summarize arg_max(TimeGenerated,*), make_set(Entities) by SystemAlertId\r\n| project SystemAlertId,TimeGenerated, DisplayName, AlertSeverity, Description, ExtendedProperties, Entities\r\n",
+              "size": 0,
+              "timeContextFromParameter": "TimeRange",
+              "exportFieldName": "SystemAlertId",
+              "exportParameterName": "SystemAlertId",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "ExtendedProperties",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkLabel": "View",
+                      "linkIsContextBlade": true
+                    }
+                  }
+                ],
+                "sortBy": [
+                  {
+                    "itemKey": "SystemAlertId",
+                    "sortOrder": 2
+                  }
+                ]
+              },
+              "sortBy": [
+                {
+                  "itemKey": "SystemAlertId",
+                  "sortOrder": 2
+                }
+              ]
+            },
+            "name": "query - 6"
           }
         ]
       },
@@ -809,7 +851,6 @@
     }
   ],
   "fallbackResourceIds": [
-    "/subscriptions/5aa2c531-f573-468b-b152-cf8fdd0ca5b9/resourcegroups/jtst1-log/providers/microsoft.operationalinsights/workspaces/sentinellab1"
   ],
   "fromTemplateId": "sentinel-UserWorkbook",
   "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
