@@ -1,0 +1,27 @@
+// Created by Jonathon Stufflebeam - CSA-E @ Microsoft  
+// I've tried my best to make this query flexible enough to parse every Entity Type,
+// however it may miss some values when parsing (whether because the regex doesn't match
+// or because new entity values have been created. 
+// If you find any issues with this query please let me know
+// Make sure to adjust your Time range on line 2
+// This is query parses out the Entities field in the Security Alert table
+SecurityAlert
+| where TimeGenerated > ago(90d)
+| extend Entities = replace_regex(Entities,',("[a-zA-Z0-9]+":{)',",")
+| extend Entities= replace_regex(Entities,@'[{}]+',"")
+| extend Entities = replace_string(Entities,"$","")
+| extend Entities = replace_string(Entities,", ",",")
+| extend Entities = replace_string(Entities,'("id":"\\d",)+',",")
+| extend Entities = replace_regex(Entities,',"([^"]+:)"[^"]+.":"[^"]','')
+| extend Entities = todynamic(Entities)
+    | mv-apply t = Entities on (
+        summarize Entities= strcat_array(make_set(Entities), ", ")
+    )
+        | extend Entities = replace_regex(Entities,'[][]',"")
+    | mv-apply Entities = todynamic(Entities) on ( 
+        extend e = extract_all('(?:")([a-zA-Z0-9]+)(?:"):',tostring(Entities))
+      | extend w = extract_all(':(?:"{0,1})([^",]+)',tostring(Entities))
+    )
+    | mv-apply with_itemindex = i key = todynamic(e) to typeof(string) on (
+        summarize PwnedEntities = make_bag(pack(key, w[i]))
+    )
