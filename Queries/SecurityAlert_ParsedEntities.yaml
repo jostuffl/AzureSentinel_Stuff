@@ -25,3 +25,4 @@ SecurityAlert
     | mv-apply with_itemindex = i key = todynamic(e) to typeof(string) on (
         summarize PwnedEntities = make_bag(pack(key, w[i]))
     )
+| project-away Entities, e, w
