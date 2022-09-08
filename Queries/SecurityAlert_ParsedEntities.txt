@@ -3,10 +3,8 @@
 // however it may miss some values when parsing (whether because the regex doesn't match
 // or because new entity values have been created. 
 // If you find any issues with this query please let me know
-// Make sure to adjust your Time range on line 2
 // This is query parses out the Entities field in the Security Alert table
 SecurityAlert
-| where TimeGenerated > ago(90d)
 | extend Entities = replace_regex(Entities,',("[a-zA-Z0-9]+":{)',",")
 | extend Entities= replace_regex(Entities,@'[{}]+',"")
 | extend Entities = replace_string(Entities,"$","")
@@ -14,7 +12,7 @@ SecurityAlert
 | extend Entities = replace_string(Entities,'("id":"\\d",)+',",")
 | extend Entities = replace_regex(Entities,',"([^"]+:)"[^"]+.":"[^"]','')
 | extend Entities = todynamic(Entities)
-    | mv-apply t = Entities on (
+    | mv-apply Entities on (
         summarize Entities= strcat_array(make_set(Entities), ", ")
     )
         | extend Entities = replace_regex(Entities,'[][]',"")
