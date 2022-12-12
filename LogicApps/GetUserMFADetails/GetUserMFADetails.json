@@ -1,0 +1,371 @@
+{
+    "$schema":  "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion":  "1.0.0.0",
+    "metadata":  {
+        "title":  "",
+        "description":  "",
+        "prerequisites":  "",
+        "postDeployment":  [
+        ],
+        "prerequisitesDeployTemplateFile":  "",
+        "lastUpdateTime":  "",
+        "entities":  [
+        ],
+        "tags":  [
+        ],
+        "support":  {
+            "tier":  "community",
+            "armtemplate":  "Generated from https://github.com/Azure/Azure-Sentinel/tree/master/Tools/Playbook-ARM-Template-Generator"
+        },
+        "author":  {
+            "name":  ""
+        }
+    },
+    "parameters":  {
+        "PlaybookName":  {
+            "defaultValue":  "MfaWatchlist",
+            "type":  "string"
+        },
+        "Sentinel Resource Group":  {
+            "type":  "string",
+            "metadata":  {
+                "description":  "Enter value for Sentinel Resource Group"
+            }
+        },
+        "Sentinel Watchlist":  {
+            "type":  "string",
+            "metadata":  {
+                "description":  "Enter value for Sentinel Watchlist"
+            }
+        },
+        "Sentinel Workspace Id":  {
+            "type":  "string",
+            "metadata":  {
+                "description":  "Enter value for Sentinel Workspace Id"
+            }
+        },
+        "Subscription":  {
+            "type":  "string",
+            "metadata":  {
+                "description":  "Enter value for Subscription"
+            }
+        }
+    },
+    "variables":  {
+        "MicrosoftSentinelConnectionName":  "[concat('MicrosoftSentinel-', parameters('PlaybookName'))]"
+    },
+    "resources":  [
+        {
+            "properties":  {
+                "provisioningState":  "Succeeded",
+                "state":  "Enabled",
+                "definition":  {
+                    "$schema":  "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion":  "1.0.0.0",
+                    "parameters":  {
+                        "$connections":  {
+                            "defaultValue":  {
+                            },
+                            "type":  "Object"
+                        },
+                        "Sentinel Resource Group":  {
+                            "defaultValue":  "[parameters('Sentinel Resource Group')]",
+                            "type":  "string"
+                        },
+                        "Sentinel Watchlist":  {
+                            "defaultValue":  "[parameters('Sentinel Watchlist')]",
+                            "type":  "string"
+                        },
+                        "Sentinel Workspace Id":  {
+                            "defaultValue":  "[parameters('Sentinel Workspace Id')]",
+                            "type":  "string"
+                        },
+                        "Subscription":  {
+                            "defaultValue":  "[parameters('Subscription')]",
+                            "type":  "string"
+                        }
+                    },
+                    "triggers":  {
+                        "manual":  {
+                            "type":  "Request",
+                            "kind":  "Http",
+                            "inputs":  {
+                                "method":  "POST",
+                                "schema":  {
+                                    "properties":  {
+                                        "items":  {
+                                            "properties":  {
+                                                "properties":  {
+                                                    "properties":  {
+                                                        "Additional Details":  {
+                                                            "properties":  {
+                                                                "type":  {
+                                                                    "type":  "string"
+                                                                }
+                                                            },
+                                                            "type":  "object"
+                                                        },
+                                                        "Authentication Methods":  {
+                                                            "properties":  {
+                                                                "type":  {
+                                                                    "type":  "string"
+                                                                }
+                                                            },
+                                                            "type":  "object"
+                                                        },
+                                                        "CreationDate":  {
+                                                            "properties":  {
+                                                                "type":  {
+                                                                    "type":  "string"
+                                                                }
+                                                            },
+                                                            "type":  "object"
+                                                        },
+                                                        "Department":  {
+                                                            "properties":  {
+                                                            },
+                                                            "type":  "object"
+                                                        },
+                                                        "Is 3rd-Party Authenticator Used":  {
+                                                            "properties":  {
+                                                                "type":  {
+                                                                    "type":  "string"
+                                                                }
+                                                            },
+                                                            "type":  "object"
+                                                        },
+                                                        "License Status":  {
+                                                            "properties":  {
+                                                                "type":  {
+                                                                    "type":  "string"
+                                                                }
+                                                            },
+                                                            "type":  "object"
+                                                        },
+                                                        "MFA Phone":  {
+                                                            "properties":  {
+                                                                "type":  {
+                                                                    "type":  "string"
+                                                                }
+                                                            },
+                                                            "type":  "object"
+                                                        },
+                                                        "MFA Status":  {
+                                                            "properties":  {
+                                                                "type":  {
+                                                                    "type":  "string"
+                                                                }
+                                                            },
+                                                            "type":  "object"
+                                                        },
+                                                        "Microsoft Authenticator Configured Device":  {
+                                                            "properties":  {
+                                                                "type":  {
+                                                                    "type":  "string"
+                                                                }
+                                                            },
+                                                            "type":  "object"
+                                                        },
+                                                        "Name":  {
+                                                            "properties":  {
+                                                                "type":  {
+                                                                    "type":  "string"
+                                                                }
+                                                            },
+                                                            "type":  "object"
+                                                        },
+                                                        "SignIn Status":  {
+                                                            "properties":  {
+                                                                "type":  {
+                                                                    "type":  "string"
+                                                                }
+                                                            },
+                                                            "type":  "object"
+                                                        },
+                                                        "UPN":  {
+                                                            "properties":  {
+                                                                "type":  {
+                                                                    "type":  "string"
+                                                                }
+                                                            },
+                                                            "type":  "object"
+                                                        }
+                                                    },
+                                                    "type":  "object"
+                                                },
+                                                "required":  {
+                                                    "items":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "type":  "array"
+                                                },
+                                                "type":  {
+                                                    "type":  "string"
+                                                }
+                                            },
+                                            "type":  "object"
+                                        },
+                                        "type":  {
+                                            "type":  "string"
+                                        }
+                                    },
+                                    "type":  "object"
+                                }
+                            }
+                        }
+                    },
+                    "actions":  {
+                        "Condition":  {
+                            "actions":  {
+                                "Watchlists_-_Create_a_new_watchlist_with_data_(Raw_Content)":  {
+                                    "runAfter":  {
+                                    },
+                                    "type":  "ApiConnection",
+                                    "inputs":  {
+                                        "body":  {
+                                            "description":  "MFA details by user",
+                                            "displayName":  "@{parameters('Sentinel Watchlist')}",
+                                            "itemsSearchKey":  "UPN",
+                                            "rawContent":  "@{body('Create_CSV_table')}",
+                                            "source":  "Playbook"
+                                        },
+                                        "host":  {
+                                            "connection":  {
+                                                "name":  "@parameters('$connections')['azuresentinel']['connectionId']"
+                                            }
+                                        },
+                                        "method":  "put",
+                                        "path":  "/Watchlists/subscriptions/@{encodeURIComponent(parameters('Subscription'))}/resourceGroups/@{encodeURIComponent(parameters('Sentinel Resource Group'))}/workspaces/@{encodeURIComponent(parameters('Sentinel Workspace Id'))}/watchlists/@{encodeURIComponent(parameters('Sentinel Watchlist'))}"
+                                    }
+                                }
+                            },
+                            "runAfter":  {
+                                "Watchlists_-_Get_a_watchlist_by_alias":  [
+                                    "Succeeded",
+                                    "Failed"
+                                ]
+                            },
+                            "expression":  {
+                                "and":  [
+                                    {
+                                        "equals":  [
+                                            "@body('Watchlists_-_Get_a_watchlist_by_alias')?['properties']?['watchlistId']",
+                                            "@null"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "type":  "If"
+                        },
+                        "Create_CSV_table":  {
+                            "runAfter":  {
+                            },
+                            "type":  "Table",
+                            "inputs":  {
+                                "format":  "CSV",
+                                "from":  "@triggerBody()"
+                            }
+                        },
+                        "Delay":  {
+                            "runAfter":  {
+                                "Watchlists_-_Delete_a_watchlist":  [
+                                    "Succeeded",
+                                    "Failed"
+                                ]
+                            },
+                            "type":  "Wait",
+                            "inputs":  {
+                                "interval":  {
+                                    "count":  1,
+                                    "unit":  "Minute"
+                                }
+                            }
+                        },
+                        "Watchlists_-_Delete_a_watchlist":  {
+                            "runAfter":  {
+                                "Create_CSV_table":  [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type":  "ApiConnection",
+                            "inputs":  {
+                                "host":  {
+                                    "connection":  {
+                                        "name":  "@parameters('$connections')['azuresentinel']['connectionId']"
+                                    }
+                                },
+                                "method":  "delete",
+                                "path":  "/Watchlists/subscriptions/@{encodeURIComponent(parameters('Subscription'))}/resourceGroups/@{encodeURIComponent(parameters('Sentinel Resource Group'))}/workspaces/@{encodeURIComponent(parameters('Sentinel Workspace Id'))}/watchlists/@{encodeURIComponent(parameters('Sentinel Watchlist'))}"
+                            }
+                        },
+                        "Watchlists_-_Get_a_watchlist_by_alias":  {
+                            "runAfter":  {
+                                "Delay":  [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type":  "ApiConnection",
+                            "inputs":  {
+                                "host":  {
+                                    "connection":  {
+                                        "name":  "@parameters('$connections')['azuresentinel']['connectionId']"
+                                    }
+                                },
+                                "method":  "get",
+                                "path":  "/Watchlists/subscriptions/@{encodeURIComponent(parameters('Subscription'))}/resourceGroups/@{encodeURIComponent(parameters('Sentinel Resource Group'))}/workspaces/@{encodeURIComponent(parameters('Sentinel Workspace Id'))}/watchlists/@{encodeURIComponent(parameters('Sentinel Watchlist'))}"
+                            }
+                        }
+                    },
+                    "outputs":  {
+                    }
+                },
+                "parameters":  {
+                    "$connections":  {
+                        "value":  {
+                            "azuresentinel":  {
+                                "connectionId":  "[resourceId('Microsoft.Web/connections', variables('MicrosoftSentinelConnectionName'))]",
+                                "connectionName":  "[variables('MicrosoftSentinelConnectionName')]",
+                                "id":  "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Azuresentinel')]",
+                                "connectionProperties":  {
+                                    "authentication":  {
+                                        "type":  "ManagedServiceIdentity"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "name":  "[parameters('PlaybookName')]",
+            "type":  "Microsoft.Logic/workflows",
+            "location":  "[resourceGroup().location]",
+            "identity":  {
+                "type":  "SystemAssigned"
+            },
+            "tags":  {
+                "hidden-SentinelTemplateName":  "MfaWatchlist",
+                "hidden-SentinelTemplateVersion":  "1.0"
+            },
+            "apiVersion":  "2017-07-01",
+            "dependsOn":  [
+                "[resourceId('Microsoft.Web/connections', variables('MicrosoftSentinelConnectionName'))]"
+            ]
+        },
+        {
+            "type":  "Microsoft.Web/connections",
+            "apiVersion":  "2016-06-01",
+            "name":  "[variables('MicrosoftSentinelConnectionName')]",
+            "location":  "[resourceGroup().location]",
+            "kind":  "V1",
+            "properties":  {
+                "displayName":  "[variables('MicrosoftSentinelConnectionName')]",
+                "customParameterValues":  {
+                },
+                "parameterValueType":  "Alternative",
+                "api":  {
+                    "id":  "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Azuresentinel')]"
+                }
+            }
+        }
+    ]
+}
