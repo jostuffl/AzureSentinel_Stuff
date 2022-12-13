@@ -51,7 +51,7 @@ $ExportCount=0
   $Result=""  
  [System.Collections.ArrayList]$Results=@()
 
-Get-MgUser -All -Filter "UserType eq 'Member'" -top 10 | foreach {
+Get-MgUser -All -Filter "UserType eq 'Member'" | foreach {
 
  $ProcessedUserCount++
 # $CreationDate = $_.CreatedDateTime
