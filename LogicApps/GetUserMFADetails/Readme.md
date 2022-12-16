@@ -7,6 +7,7 @@ To deploy the logic app simply click the blue **Deploy To Azure** button and inp
 
 The logic app uses a managed identity for the Sentinel API connection, and must be granted **Sentinel Contributor** permissions to the resource group where your Sentinel instance is located.
 
+**NOTE:** The logic app deletes the watchlist every time it runs and recreates it. This is intentional based on the behaviour of the powershell script that feeds the data. Just keep that in mind.
 
 **Deploy:**
 
