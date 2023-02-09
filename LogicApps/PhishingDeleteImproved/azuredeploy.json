@@ -1,0 +1,521 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "metadata": {
+        "title": "",
+        "description": "",
+        "prerequisites": "",
+    "postDeployment": [],
+    "prerequisitesDeployTemplateFile": "",
+    "lastUpdateTime": "",
+"entities": [],
+"tags": [],
+"support": {
+"tier": "community",
+"armtemplate": "Generated from https://github.com/Azure/Azure-Sentinel/tree/master/Tools/Playbook-ARM-Template-Generator"
+},
+"author": {
+"name": ""
+}
+},
+"parameters": {
+"PlaybookName": {
+"defaultValue": "PhishingDeleteImproved",
+"type": "string"
+},
+"EmailDomainName": {
+"type": "string",
+"metadata": {
+    "description": "Enter value for EmailDomainName"
+}
+},
+"ResourceGroupName": {
+"type": "string",
+"metadata": {
+    "description": "Enter value for ResourceGroupName"
+}
+},
+"SubscriptionId": {
+"type": "string",
+"metadata": {
+    "description": "Enter value for SubscriptionId"
+}
+},
+"WorkspaceName": {
+"type": "string",
+"metadata": {
+    "description": "Enter value for WorkspaceName"
+}
+}
+},
+"variables": {
+"AzuremonitorlogsConnectionName": "[concat('Azuremonitorlogs-', parameters('PlaybookName'))]",
+"MicrosoftSentinelConnectionName": "[concat('MicrosoftSentinel-', parameters('PlaybookName'))]"
+},
+"resources": [
+{
+"properties": {
+    "provisioningState": "Succeeded",
+    "state": "Enabled",
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "parameters": {
+            "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        },
+        "EmailDomainName": {
+            "defaultValue": "[parameters('EmailDomainName')]",
+            "type": "string"
+        },
+        "ResourceGroupName": {
+            "defaultValue": "[parameters('ResourceGroupName')]",
+            "type": "string"
+        },
+        "SubscriptionId": {
+            "defaultValue": "[parameters('SubscriptionId')]",
+            "type": "string"
+        },
+        "WorkspaceName": {
+            "defaultValue": "[parameters('WorkspaceName')]",
+            "type": "string"
+        }
+    },
+    "triggers": {
+        "Microsoft_Sentinel_incident": {
+            "type": "ApiConnectionWebhook",
+            "inputs": {
+                "body": {
+                    "callback_url": "@{listCallbackUrl()}"
+                },
+                "host": {
+                    "connection": {
+                        "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                    }
+                },
+                "path": "/incident-creation"
+            }
+        }
+    },
+    "actions": {
+        "Entities_-_Get_Accounts": {
+        "runAfter": {},
+        "type": "ApiConnection",
+        "inputs": {
+            "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+            "host": {
+                "connection": {
+                    "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                }
+            },
+            "method": "post",
+            "path": "/entities/account"
+        }
+    },
+    "ForEachSender": {
+        "foreach": "@body('Entities_-_Get_Accounts')?['Accounts']",
+        "actions": {
+            "ForEachResult": {
+                "foreach": "@body('ParseKQLQuery')",
+                "actions": {
+                    "Condition": {
+                        "actions": {
+                            "HTTP_2": {
+                            "runAfter": {},
+                            "type": "Http",
+                            "inputs": {
+                                "authentication": {
+                                    "audience": "https://graph.microsoft.com",
+                                    "type": "ManagedServiceIdentity"
+                                },
+                                "method": "DELETE",
+                                "uri": "https://graph.microsoft.com/v1.0/users/@{items('ForEachResult')['RecipientEmailAddress']}/messages/@{body('ParseGetId')?['value'][0]?['id']}"
+                            }
+                        }
+                    },
+                    "runAfter": {
+                        "ParseGetId": [
+                            "Succeeded",
+                            "Failed"
+                        ]
+                    },
+                    "expression": {
+                        "and": [
+                            {
+                                "not": {
+                                    "equals": [
+                                        "@body('ParseGetId')?['value'][0]?['id']",
+                                        "@null"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "type": "If"
+                },
+                "GetId": {
+                "runAfter": {},
+                "type": "Http",
+                "inputs": {
+                    "authentication": {
+                        "audience": "https://graph.microsoft.com",
+                        "type": "ManagedServiceIdentity"
+                    },
+                    "method": "GET",
+                    "uri": "https://graph.microsoft.com/v1.0/users/@{items('ForEachResult')['RecipientEmailAddress']}/messages?$filter=internetMessageId eq '@{items('ForEachResult')['InternetMessageId']}'"
+                }
+            },
+            "ParseGetId": {
+                "runAfter": {
+                    "GetId": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ParseJson",
+                "inputs": {
+                    "content": "@body('GetId')",
+                    "schema": {
+                        "properties": {
+                            "@@odata.context": {
+                                "type": "string"
+                            },
+                            "value": {
+                                "items": {
+                                    "properties": {
+                                        "@@odata.etag": {
+                                            "type": "string"
+                                        },
+                                        "bccRecipients": {
+                                            "type": "array"
+                                        },
+                                        "body": {
+                                            "properties": {
+                                                "content": {
+                                                    "type": "string"
+                                                },
+                                                "contentType": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "bodyPreview": {
+                                            "type": "string"
+                                        },
+                                        "categories": {
+                                            "type": "array"
+                                        },
+                                        "ccRecipients": {
+                                            "type": "array"
+                                        },
+                                        "changeKey": {
+                                            "type": "string"
+                                        },
+                                        "conversationId": {
+                                            "type": "string"
+                                        },
+                                        "conversationIndex": {
+                                            "type": "string"
+                                        },
+                                        "createdDateTime": {
+                                            "type": "string"
+                                        },
+                                        "flag": {
+                                            "properties": {
+                                                "flagStatus": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "from": {
+                                            "properties": {
+                                                "emailAddress": {
+                                                    "properties": {
+                                                        "address": {
+                                                            "type": "string"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "hasAttachments": {
+                                            "type": "boolean"
+                                        },
+                                        "id": {
+                                            "type": "string"
+                                        },
+                                        "importance": {
+                                            "type": "string"
+                                        },
+                                        "inferenceClassification": {
+                                            "type": "string"
+                                        },
+                                        "internetMessageId": {
+                                            "type": "string"
+                                        },
+                                        "isDeliveryReceiptRequested": {
+                                            "type": "boolean"
+                                        },
+                                        "isDraft": {
+                                            "type": "boolean"
+                                        },
+                                        "isRead": {
+                                            "type": "boolean"
+                                        },
+                                        "isReadReceiptRequested": {
+                                            "type": "boolean"
+                                        },
+                                        "lastModifiedDateTime": {
+                                            "type": "string"
+                                        },
+                                        "parentFolderId": {
+                                            "type": "string"
+                                        },
+                                        "receivedDateTime": {
+                                            "type": "string"
+                                        },
+                                        "replyTo": {
+                                            "type": "array"
+                                        },
+                                        "sender": {
+                                            "properties": {
+                                                "emailAddress": {
+                                                    "properties": {
+                                                        "address": {
+                                                            "type": "string"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "sentDateTime": {
+                                            "type": "string"
+                                        },
+                                        "subject": {
+                                            "type": "string"
+                                        },
+                                        "toRecipients": {
+                                            "items": {
+                                                "properties": {
+                                                    "emailAddress": {
+                                                        "properties": {
+                                                            "address": {
+                                                                "type": "string"
+                                                            },
+                                                            "name": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "emailAddress"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "webLink": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "@@odata.etag",
+                                        "id",
+                                        "createdDateTime",
+                                        "lastModifiedDateTime",
+                                        "changeKey",
+                                        "categories",
+                                        "receivedDateTime",
+                                        "sentDateTime",
+                                        "hasAttachments",
+                                        "internetMessageId",
+                                        "subject",
+                                        "bodyPreview",
+                                        "importance",
+                                        "parentFolderId",
+                                        "conversationId",
+                                        "conversationIndex",
+                                        "isDeliveryReceiptRequested",
+                                        "isReadReceiptRequested",
+                                        "isRead",
+                                        "isDraft",
+                                        "webLink",
+                                        "inferenceClassification",
+                                        "body",
+                                        "sender",
+                                        "from",
+                                        "toRecipients",
+                                        "ccRecipients",
+                                        "bccRecipients",
+                                        "replyTo",
+                                        "flag"
+                                    ],
+                                    "type": "object"
+                                },
+                                "type": "array"
+                            }
+                        },
+                        "type": "object"
+                    }
+                }
+            }
+        },
+        "runAfter": {
+            "ParseKQLQuery": [
+                "Succeeded"
+            ]
+        },
+        "type": "Foreach"
+    },
+    "ParseKQLQuery": {
+        "runAfter": {
+            "Run_query_and_list_results": [
+                "Succeeded"
+            ]
+        },
+        "type": "ParseJson",
+        "inputs": {
+            "content": "@body('Run_query_and_list_results')?['value']",
+            "schema": {
+                "items": {
+                    "properties": {
+                        "InternetMessageId": {
+                            "type": "string"
+                        },
+                        "NetworkMessageId": {
+                            "type": "string"
+                        },
+                        "RecipientEmailAddress": {
+                            "type": "string"
+                        },
+                        "Subject": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "RecipientEmailAddress",
+                        "NetworkMessageId",
+                        "Subject",
+                        "InternetMessageId"
+                    ],
+                    "type": "object"
+                },
+                "type": "array"
+            }
+        }
+    },
+    "Run_query_and_list_results": {
+    "runAfter": {},
+    "type": "ApiConnection",
+    "inputs": {
+        "body": "let PhishCount = EmailEvents\n| where TimeGenerated > ago(2h)\n| where SenderFromAddress has \"@{items('ForEachSender')?['Name']}\"\n| where RecipientEmailAddress has \"@{parameters('EmailDomainName')}\"\n| summarize EmailCount = count() by Subject, SenderFromAddress\n| where EmailCount > 100\n| project Subject;\nEmailEvents\n| where TimeGenerated > ago(2h)\n| where SenderFromAddress has \"@{items('ForEachSender')?['Name']}\"\n| where RecipientEmailAddress has \"@{parameters('EmailDomainName')}\"\n| where Subject in (PhishCount)\n| project RecipientEmailAddress, NetworkMessageId, Subject, InternetMessageId",
+        "host": {
+            "connection": {
+                "name": "@parameters('$connections')['azuremonitorlogs']['connectionId']"
+            }
+        },
+        "method": "post",
+        "path": "/queryData",
+        "queries": {
+            "resourcegroups": "@parameters('ResourceGroupName')",
+            "resourcename": "@parameters('WorkspaceName')",
+            "resourcetype": "Log Analytics Workspace",
+            "subscriptions": "@parameters('SubscriptionId')",
+            "timerange": "2h"
+        }
+    }
+}
+},
+"runAfter": {
+"Entities_-_Get_Accounts": [
+    "Succeeded"
+]
+},
+"type": "Foreach"
+}
+},
+"outputs": {}
+},
+"parameters": {
+"$connections": {
+"value": {
+"azuremonitorlogs": {
+"connectionId": "[resourceId('Microsoft.Web/connections', variables('AzuremonitorlogsConnectionName'))]",
+"connectionName": "[variables('AzuremonitorlogsConnectionName')]",
+"id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Azuremonitorlogs')]"
+},
+"azuresentinel": {
+"connectionId": "[resourceId('Microsoft.Web/connections', variables('MicrosoftSentinelConnectionName'))]",
+"connectionName": "[variables('MicrosoftSentinelConnectionName')]",
+"id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Azuresentinel')]",
+"connectionProperties": {
+"authentication": {
+    "type": "ManagedServiceIdentity"
+}
+}
+}
+}
+}
+}
+},
+"name": "[parameters('PlaybookName')]",
+"type": "Microsoft.Logic/workflows",
+"location": "[resourceGroup().location]",
+"identity": {
+"type": "SystemAssigned"
+},
+"tags": {
+"hidden-SentinelTemplateName": "PhishingDeleteImproved",
+"hidden-SentinelTemplateVersion": "1.0"
+},
+"apiVersion": "2017-07-01",
+"dependsOn": [
+"[resourceId('Microsoft.Web/connections', variables('AzuremonitorlogsConnectionName'))]",
+"[resourceId('Microsoft.Web/connections', variables('MicrosoftSentinelConnectionName'))]"
+]
+},
+{
+"type": "Microsoft.Web/connections",
+"apiVersion": "2016-06-01",
+"name": "[variables('AzuremonitorlogsConnectionName')]",
+"location": "[resourceGroup().location]",
+"kind": "V1",
+"properties": {
+"displayName": "[variables('AzuremonitorlogsConnectionName')]",
+"customParameterValues": {},
+"api": {
+"id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Azuremonitorlogs')]"
+}
+}
+},
+{
+"type": "Microsoft.Web/connections",
+"apiVersion": "2016-06-01",
+"name": "[variables('MicrosoftSentinelConnectionName')]",
+"location": "[resourceGroup().location]",
+"kind": "V1",
+"properties": {
+"displayName": "[variables('MicrosoftSentinelConnectionName')]",
+"customParameterValues": {},
+"parameterValueType": "Alternative",
+"api": {
+"id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Azuresentinel')]"
+}
+}
+}
+]
+}
