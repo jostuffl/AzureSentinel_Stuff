@@ -1,0 +1,13 @@
+// This is currently a work in progress
+// It's meant to be a more efficient / cleaner way to extract out nested Entities in the SecurityAlert table in Microsoft Sentinel
+
+
+SecurityAlert
+| where isnotempty(Entities )
+| sort by TimeGenerated desc
+| mv-apply Entities = parse_json(Entities) to typeof(dynamic) on (
+     extend Keys = extract_all('([^{"]+[^"])":[^{[]', tostring(Entities))
+|    extend Values = extract_all('(?:[^"{]*:"?([^[{"\\?]+|[^[{"\\?,]+))',tostring(Entities)))
+| mv-apply with_itemindex = i key = todynamic(Keys) to typeof(string) on (
+        summarize PwnedEntities = make_bag(pack(key, Values[i])))
+| project Entities, PwnedEntities, Keys, Values
