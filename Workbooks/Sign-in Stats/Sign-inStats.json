@@ -1,0 +1,799 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "56ad168e-ee3b-4e17-8f6f-da9e1dae84f7",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "type": 4,
+            "description": "Set the timerange globally for all visualizations",
+            "isRequired": true,
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 300000
+                },
+                {
+                  "durationMs": 900000
+                },
+                {
+                  "durationMs": 1800000
+                },
+                {
+                  "durationMs": 3600000
+                },
+                {
+                  "durationMs": 14400000
+                },
+                {
+                  "durationMs": 43200000
+                },
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 172800000
+                },
+                {
+                  "durationMs": 259200000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 1209600000
+                },
+                {
+                  "durationMs": 2419200000
+                },
+                {
+                  "durationMs": 2592000000
+                },
+                {
+                  "durationMs": 5184000000
+                },
+                {
+                  "durationMs": 7776000000
+                }
+              ],
+              "allowCustom": true
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": {
+              "durationMs": 604800000
+            }
+          },
+          {
+            "id": "57ae1c91-8c8b-4e81-a1c7-cf3abf2acd83",
+            "version": "KqlParameterItem/1.0",
+            "name": "Workspace",
+            "type": 5,
+            "isRequired": true,
+            "typeSettings": {
+              "resourceTypeFilter": {
+                "microsoft.operationalinsights/workspaces": true
+              },
+              "additionalResourceOptions": [],
+              "componentIdOnly": true
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": null
+          },
+          {
+            "id": "42b5622b-c235-4319-9425-1ffc1cde61c0",
+            "version": "KqlParameterItem/1.0",
+            "name": "Page",
+            "type": 11,
+            "isRequired": true,
+            "query": "datatable(Page:string)[\r\n\"Page 1\",\r\n\"Page 2\",\r\n\"Page 3\"]",
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "queryType": 0,
+            "resourceType": "microsoft.operationalinsights/workspaces",
+            "value": "Page 1"
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters - 0"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| summarize SigninCount = count()\r\n| extend Title = \"Total Sign-ins (Last {TimeRange:label})\"",
+              "size": 4,
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "Title"
+                },
+                "leftContent": {
+                  "columnMatch": "SigninCount",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  }
+                },
+                "showBorder": true,
+                "size": "auto"
+              }
+            },
+            "customWidth": "15",
+            "name": "query - 1"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| extend Country = tostring(todynamic(geo_info_from_ip_address(IPAddress)).country)\r\n| where Country == \"United States\"\r\n| summarize SigninCount = count() by Country\r\n| extend Country = \"US-based Sign-ins\"",
+              "size": 4,
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "Country",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "SigninCount",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "maximumSignificantDigits": 3,
+                      "maximumFractionDigits": 2
+                    }
+                  }
+                },
+                "showBorder": true
+              }
+            },
+            "customWidth": "15",
+            "name": "query - 2"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| extend Country = tostring(todynamic(geo_info_from_ip_address(IPAddress)).country)\r\n| where Country != \"United States\"\r\n| summarize LoginCount = count()\r\n| extend Country = \"International Sign-ins\"",
+              "size": 4,
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "Country",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "LoginCount",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "maximumSignificantDigits": 3,
+                      "maximumFractionDigits": 2
+                    }
+                  }
+                },
+                "showBorder": true,
+                "size": "auto"
+              }
+            },
+            "customWidth": "15",
+            "name": "query - 3"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| extend Country = tostring(todynamic(geo_info_from_ip_address(IPAddress)).country)\r\n| where Country != \"United States\"\r\n| summarize LoginCount = count() by Country\r\n| top 1 by LoginCount\r\n| extend Adversary = \"Top Adversary in last {TimeRange:label}\"",
+              "size": 4,
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "Adversary",
+                  "formatter": 1
+                },
+                "subtitleContent": {
+                  "columnMatch": "Country",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "LoginCount",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "maximumSignificantDigits": 3,
+                      "maximumFractionDigits": 2
+                    }
+                  }
+                },
+                "showBorder": true,
+                "size": "auto"
+              }
+            },
+            "customWidth": "15",
+            "name": "query - 4"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| extend Country = tostring(todynamic(geo_info_from_ip_address(IPAddress)).country)\r\n| where Country != \"United States\"\r\n| summarize LoginCount = count() by Country",
+              "size": 3,
+              "title": "Top Sign-Ins by Top Countries (Excluding US)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "piechart",
+              "chartSettings": {
+                "yAxis": [
+                  "LoginCount"
+                ],
+                "group": "Country",
+                "createOtherGroup": 15,
+                "showMetrics": false,
+                "showLegend": true
+              }
+            },
+            "customWidth": "50",
+            "name": "Top_Countries",
+            "styleSettings": {
+              "showBorder": true
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| extend ResultType = iff(ResultType == \"0\", 'Success', 'Failed')\r\n| summarize count() by ResultType, bin(TimeGenerated,{TimeRange:grain})",
+              "size": 0,
+              "title": "Sign-in count by Status",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "linechart"
+            },
+            "customWidth": "50",
+            "name": "query - 6"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "\r\nlet CAPolicies = SigninLogs\r\n| extend ConditionalAccessPolicies = parse_json(tostring(ConditionalAccessPolicies))\r\n| mv-expand policy = ConditionalAccessPolicies\r\n| extend PolicyName = tostring(policy.displayName)\r\n| extend Result = tostring(policy.result)\r\n| extend MyBag = bag_pack(PolicyName, Result)\r\n| summarize arg_max(TimeGenerated,*), CAPolicies=make_bag(MyBag) by CorrelationId\r\n| project CAPolicies, CorrelationId;\r\nlet UserCount = SigninLogs\r\n| summarize count() by UserPrincipalName;\r\nlet Series = SigninLogs\r\n| make-series CountOverTime  = count() default = 0 on TimeGenerated from {TimeRange:start} to {TimeRange:end} step {TimeRange:grain} by UserPrincipalName\r\n| project CountOverTime, UserPrincipalName;\r\nSigninLogs\r\n| extend LocationInfo = todynamic(geo_info_from_ip_address(IPAddress))\r\n| extend Coordinates = strcat(tostring(parse_json(tostring(LocationDetails.geoCoordinates)).latitude), \" - \", tostring(parse_json(tostring(LocationDetails.geoCoordinates)).longitude))\r\n| extend Country = iff(isempty(tostring(LocationInfo.country)), tostring(LocationDetails.countryOrRegion), tostring(LocationInfo.country))\r\n| extend City = iff(isempty(tostring(LocationInfo.city)),tostring(LocationDetails.city),tostring(LocationInfo.city))\r\n| extend State = iff(isempty(tostring(LocationInfo.state)),tostring(LocationDetails.state),tostring(LocationInfo.state))\r\n| project-away LocationInfo\r\n| join Series on UserPrincipalName\r\n| join UserCount on UserPrincipalName\r\n| join CAPolicies on CorrelationId\r\n| extend ConditionalAccessPolicies = todynamic(ConditionalAccessPolicies)\r\n| project TimeGenerated, Country, City, State, AppDisplayName, UserPrincipalName,Id, IPAddress, ClientAppUsed, Resource, Status = ResultType, ConditionalAccessStatus, AppId, ConditionalAccessPolicies, CountOverTime, SigninCount = count_, CAPolicies, RiskState, RiskDetail\r\n| sort by TimeGenerated desc",
+              "size": 0,
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "AppDisplayName",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "categorical"
+                    }
+                  },
+                  {
+                    "columnMatch": "UserPrincipalName",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "Person",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "ClientAppUsed",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "categorical"
+                    }
+                  },
+                  {
+                    "columnMatch": "Status",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "!=",
+                          "thresholdValue": "0",
+                          "representation": "3",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "ConditionalAccessStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "!=",
+                          "thresholdValue": "success",
+                          "representation": "more",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "ConditionalAccessPolicies",
+                    "formatter": 5,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkLabel": "View Details",
+                      "linkIsContextBlade": true
+                    }
+                  },
+                  {
+                    "columnMatch": "CountOverTime",
+                    "formatter": 9,
+                    "formatOptions": {
+                      "palette": "greenRed"
+                    }
+                  },
+                  {
+                    "columnMatch": "SigninCount",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "greenRed"
+                    }
+                  },
+                  {
+                    "columnMatch": "CAPolicies",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "CellDetails",
+                      "linkLabel": "View Details",
+                      "linkIsContextBlade": true
+                    }
+                  }
+                ]
+              }
+            },
+            "name": "query - 6"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| extend OS = tostring(DeviceDetail.operatingSystem)\r\n| extend OS = iff(isempty(OS), \"Unknown\", OS)\r\n| summarize SigninCount = count() by OS",
+              "size": 0,
+              "title": "Count By OS",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart",
+              "chartSettings": {
+                "ySettings": {
+                  "numberFormatSettings": {
+                    "unit": 0,
+                    "options": {
+                      "style": "decimal",
+                      "useGrouping": true
+                    }
+                  }
+                }
+              }
+            },
+            "customWidth": "25",
+            "name": "CountByOS",
+            "styleSettings": {
+              "margin": "0",
+              "padding": "0",
+              "showBorder": true
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| extend ClientAppUsed = iff(isempty(ClientAppUsed),\"Unknown\",ClientAppUsed)\r\n| summarize SigninCount = count() by ClientAppUsed",
+              "size": 0,
+              "title": "Count By Application Used",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart"
+            },
+            "customWidth": "25",
+            "name": "Count by Application Used",
+            "styleSettings": {
+              "margin": "0",
+              "padding": "0",
+              "showBorder": true
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Results = SigninLogs\r\n    | extend ResultType = iff(ResultType == \"0\", \"Sign-in Success\", \"Sign-in Failed\")\r\n    | summarize SigninCount = count() by ResultType;\r\nSigninLogs\r\n| extend ConditionalAccessStatus = iff(ConditionalAccessStatus == \"notApplied\", \"CA Not Applied\", \"CA Applied\")\r\n| summarize SigninCount = count() by ResultType = ConditionalAccessStatus\r\n| union Results\r\n        ",
+              "size": 0,
+              "title": "Count by Sign-in Result and Conditional Access Sign-in Count",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "categoricalbar",
+              "chartSettings": {
+                "xAxis": "ResultType",
+                "yAxis": [
+                  "SigninCount"
+                ],
+                "group": "ConditionalAccessStatus",
+                "createOtherGroup": null
+              }
+            },
+            "customWidth": "50",
+            "name": "query - 2",
+            "styleSettings": {
+              "margin": "0",
+              "padding": "0",
+              "showBorder": true
+            }
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Page",
+        "comparison": "isEqualTo",
+        "value": "Page 1"
+      },
+      "name": "Page1"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Page 2",
+        "items": [
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| summarize LoginCount = count() by UserPrincipalName\r\n| order by LoginCount desc",
+              "size": 0,
+              "title": "International Sign-ins - Top At Risk Users",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart",
+              "chartSettings": {
+                "group": "UserPrincipalName",
+                "createOtherGroup": 10
+              }
+            },
+            "customWidth": "50",
+            "name": "International Sign-ins",
+            "styleSettings": {
+              "margin": "0",
+              "padding": "0",
+              "showBorder": true
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| where ResultType != \"0\"\r\n| extend FailureReason = ResultDescription\r\n| summarize FailureCount = count() by FailureReason",
+              "size": 0,
+              "title": "Sign-Ins by Failure Type",
+              "timeContext": {
+                "durationMs": 86400000
+              },
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "query - 1",
+            "styleSettings": {
+              "margin": "0",
+              "padding": "0",
+              "showBorder": true
+            }
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Page",
+        "comparison": "isEqualTo",
+        "value": "Page 2"
+      },
+      "name": "group - 4"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Page 3",
+        "items": [
+          {
+            "type": 9,
+            "content": {
+              "version": "KqlParameterItem/1.0",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "parameters": [
+                {
+                  "id": "00d9081f-5eec-4170-9b53-855952cbc182",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "Country",
+                  "type": 2,
+                  "query": "SigninLogs\r\n| extend Country = toupper(tostring(LocationDetails.countryOrRegion))\r\n| extend Country = iff(isempty(Country), \"Unknown\", Country)\r\n| distinct Country\r\n| sort by Country asc",
+                  "crossComponentResources": [
+                    "{Workspace}"
+                  ],
+                  "typeSettings": {
+                    "additionalResourceOptions": [],
+                    "showDefault": false
+                  },
+                  "timeContext": {
+                    "durationMs": 0
+                  },
+                  "timeContextFromParameter": "TimeRange",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "value": null
+                }
+              ],
+              "style": "pills",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "name": "parameters - 1"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| extend Location = todynamic(geo_info_from_ip_address(IPAddress))\r\n| extend Country = tostring(Location.country)\r\n| where Country has \"{Country}\"\r\n| make-series LoginCount = count() on TimeGenerated from {TimeRange:start} to {TimeRange:end} step {TimeRange:grain} by  Country\r\n",
+              "size": 0,
+              "title": "Attempted Sign-ins by Country (Excluding US)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "timechart"
+            },
+            "customWidth": "50",
+            "name": "query - 0",
+            "styleSettings": {
+              "margin": "0",
+              "padding": "0",
+              "showBorder": true
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| extend Country = tostring(todynamic(geo_info_from_ip_address(IPAddress)).country)\r\n| where Country != \"United States\"\r\n| summarize [\"Attempted Sign-in Count\"] = count() by Country\r\n| sort by [\"Attempted Sign-in Count\"] desc",
+              "size": 0,
+              "title": "Count of Sign-in Attempts by Country (Excluding US)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Attempted Sign-in Count",
+                    "formatter": 22,
+                    "formatOptions": {
+                      "compositeBarSettings": {
+                        "labelText": "",
+                        "columnSettings": [
+                          {
+                            "columnName": "Attempted Sign-in Count",
+                            "color": "redBright"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "50",
+            "name": "query - 2",
+            "styleSettings": {
+              "margin": "0",
+              "padding": "0",
+              "showBorder": true
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| summarize ['Attempted Sign-in Count'] = count(), arg_max(TimeGenerated, *) by IPAddress\r\n| extend Latitude = tostring(parse_json(tostring(LocationDetails.geoCoordinates)).latitude)\r\n| extend Longitude = tostring(parse_json(tostring(LocationDetails.geoCoordinates)).longitude)\r\n| project IPAddress, Latitude, Longitude, ['Attempted Sign-in Count']\r\n| sort by ['Attempted Sign-in Count'] desc",
+              "size": 3,
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "map",
+              "mapSettings": {
+                "locInfo": "LatLong",
+                "locInfoColumn": "Location",
+                "latitude": "Latitude",
+                "longitude": "Longitude",
+                "sizeSettings": "Attempted Sign-in Count",
+                "sizeAggregation": "Sum",
+                "labelSettings": "IPAddress",
+                "legendMetric": "Attempted Sign-in Count",
+                "numberOfMetrics": 15,
+                "legendAggregation": "Sum",
+                "itemColorSettings": {
+                  "nodeColorField": "Attempted Sign-in Count",
+                  "colorAggregation": "Sum",
+                  "type": "heatmap",
+                  "heatmapPalette": "greenRed"
+                }
+              }
+            },
+            "name": "query - 3"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\r\n| summarize ['Attempted Sign-in Count'] = count(), arg_max(TimeGenerated, *) by IPAddress\r\n| extend Latitude = tostring(parse_json(tostring(LocationDetails.geoCoordinates)).latitude)\r\n| extend Longitude = tostring(parse_json(tostring(LocationDetails.geoCoordinates)).longitude)\r\n| extend Location = todynamic(geo_info_from_ip_address(IPAddress))\r\n| extend Country = tostring(Location.country)\r\n| extend City = tostring(Location.city)\r\n| extend State = tostring(Location.state)\r\n| project IPAddress, Country, State, City, Coordinates = strcat(Latitude, \", \", Longitude), ['Attempted Sign-in Count']\r\n| sort by ['Attempted Sign-in Count'] desc",
+              "size": 0,
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "IPAddress",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "Country",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "categorical"
+                    }
+                  },
+                  {
+                    "columnMatch": "Attempted Sign-in Count",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "greenRed"
+                    }
+                  }
+                ]
+              }
+            },
+            "name": "query - 4"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Page",
+        "comparison": "isEqualTo",
+        "value": "Page 3"
+      },
+      "name": "Page 3"
+    }
+  ],
+  "fallbackResourceIds": [
+    ""
+  ],
+  "fromTemplateId": "sentinel-UserWorkbook",
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
