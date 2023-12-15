@@ -5,6 +5,8 @@
 		Policy.Read.All (Might be able to get away with Policy.Read.ConditionalAccess)
 		User.Read.All
 	1.5 Make a note of the Application/Client ID of the application and your TenantID (Found on the overview page of the app registration)
+	
+	1.6 You need the following modules installed in your automation account for powershell version 7.2: Microsoft.Graph.Authentication, Microsoft.Graph.Beta.Identity.SignIns, Microsoft.Graph.Users, Microsoft.Graph.Groups
 
 	2. Next you need to create a certificate for the app registration and upload it to the app in the certificates section.
 		(Make sure to take note of the Thumbprint for the certificate)
@@ -20,23 +22,24 @@
 
 #>
 
+
 # Modules to Import
-Import-Module ("Microsoft.Graph.Identity.SignIns","Microsoft.Graph.Users","Microsoft.Graph.Groups")
+import-Module ("Microsoft.Graph.Beta.Identity.SignIns","Microsoft.Graph.Users","Microsoft.Graph.Groups")
 
 #Variables
-# Automation cert seems unnecessary, up to you.
-$Cert = Get-AutomationCertificate -Name "your cert that is uploaded to azure automation"
+$Cert = Get-AutomationCertificate -Name "YOUR CERTIFICATE NAME"
 $TenantId = "YOUR TENANT ID"
-$AppId = "YOUR APPLICATION ID"
+$AppId = "YOUR APP ID"
 $CertificateThumbPrint = "YOUR CERTIFICATE THUMBPRINT"
-$WebhookURL = "YOUR LOGIC APP WEBHOOK URL"
+$WebhookURL = "YOUR WEBHOOK URL"
+
 
 
 # Connect to Graph with App Cert based auth
-Connect-MgGraph -TenantId "$TenantId" -AppId "$AppId" -CertificateThumbprint "$CertificateThumbPrint"
+ Connect-MgGraph -TenantId "$TenantId" -AppId "$AppId" -CertificateThumbprint "$CertificateThumbPrint"
 
 # Get Conditional Access Policies and store in variable
-$CAPs = Get-MgIdentityConditionalAccessPolicy
+$CAPs = Get-MgBetaIdentityConditionalAccessPolicy
 
 #Initialize array variables
 [System.Collections.ArrayList]$PolicyArray = @()
@@ -93,4 +96,3 @@ $Json = $PolicyArray | ConvertTo-Json
 
 # POST request to azure logic app to create watchlist
 Invoke-WebRequest -Uri $WebhookURL -Method Post -Body $Json -ContentType "application/json" -UseBasicParsing
-
