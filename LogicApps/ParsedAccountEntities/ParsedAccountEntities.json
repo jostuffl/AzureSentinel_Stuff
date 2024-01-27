@@ -22,6 +22,12 @@
 "PlaybookName": {
 "defaultValue": "ParsedAccountEntities",
 "type": "string"
+},
+"Domain or UPN Suffix": {
+"type": "String",
+"metadata": {
+    "description": "Enter value for Domain or UPN Suffix"
+}
 }
 },
 "variables": {
@@ -40,6 +46,10 @@
             "$connections": {
             "defaultValue": {},
             "type": "Object"
+        },
+        "Domain or UPN Suffix": {
+            "defaultValue": "[parameters('Domain or UPN Suffix')]",
+            "type": "String"
         }
     },
     "triggers": {
@@ -59,16 +69,7 @@
         }
     },
     "actions": {
-        "Compose_2": {
-            "runAfter": {
-                "Initialize_variable": [
-                    "Succeeded"
-                ]
-            },
-            "type": "Compose",
-            "inputs": "@variables('DeduplicatedUPNs')"
-        },
-        "For_each": {
+        "Foreach_Entity": {
             "foreach": "@triggerBody()?['object']?['properties']?['relatedEntities']",
             "actions": {
                 "Switch": {
@@ -77,16 +78,16 @@
                     "Account-Entity": {
                         "case": "Account",
                         "actions": {
-                            "Condition": {
+                            "CheckIfEmail": {
                                 "actions": {
-                                    "Condition_2": {
+                                    "CheckIfInternalEmail": {
                                         "actions": {
                                             "Append_to_array_variable": {
                                             "runAfter": {},
                                             "type": "AppendToArrayVariable",
                                             "inputs": {
                                                 "name": "UPN",
-                                                "value": "@items('For_each')?['properties']?['friendlyName']"
+                                                "value": "@items('Foreach_Entity')?['properties']?['friendlyName']"
                                             }
                                         }
                                     },
@@ -95,8 +96,8 @@
                                     "and": [
                                         {
                                             "contains": [
-                                                "@item()?['properties']?['friendlyName']",
-                                                "@@jostuffl.com"
+                                                "",
+                                                "@parameters('Domain or UPN Suffix')"
                                             ]
                                         }
                                     ]
@@ -114,7 +115,7 @@
                                     "type": "AppendToArrayVariable",
                                     "inputs": {
                                         "name": "UPN",
-                                        "value": "@items('For_each')?['properties']?['additionalData']?['upnName']"
+                                        "value": "@items('Foreach_Entity')?['properties']?['additionalData']?['upnName']"
                                     }
                                 }
                             },
@@ -143,7 +144,7 @@
                                         }
                                     },
                                     "method": "get",
-                                    "path": "/v1.0/users/@{encodeURIComponent(items('For_each')?['properties']?['aadUserId'])}"
+                                    "path": "/v1.0/users/@{encodeURIComponent(items('Foreach_Entity')?['properties']?['aadUserId'])}"
                                 }
                             }
                         }
@@ -153,7 +154,7 @@
                             {
                                 "not": {
                                     "equals": [
-                                        "@items('For_each')?['properties']?['additionalData']?['upnName']",
+                                        "",
                                         ""
                                     ]
                                 }
@@ -168,7 +169,7 @@
             "and": [
                 {
                     "contains": [
-                        "@item()?['properties']?['friendlyName']",
+                        "",
                         "@"
                     ]
                 }
@@ -186,7 +187,7 @@
     "type": "AppendToArrayVariable",
     "inputs": {
         "name": "UPN",
-        "value": "@items('For_each')?['properties']?['recipient']"
+        "value": "@items('Foreach_Entity')?['properties']?['recipient']"
     }
 }
 }
@@ -199,7 +200,7 @@
 "type": "AppendToArrayVariable",
 "inputs": {
     "name": "UPN",
-    "value": "@items('For_each')?['properties']?['MailboxPrimaryAddress']"
+    "value": "@items('Foreach_Entity')?['properties']?['MailboxPrimaryAddress']"
 }
 }
 }
@@ -208,7 +209,7 @@
 "default": {
 "actions": {}
 },
-"expression": "@item()?['kind']",
+"expression": "@items('Foreach_Entity')?['kind']",
 "type": "Switch"
 }
 },
@@ -221,7 +222,7 @@
 },
 "Initialize_variable": {
 "runAfter": {
-"For_each": [
+"Foreach_Entity": [
 "Succeeded"
 ]
 },
@@ -276,7 +277,6 @@
 "type": "Microsoft.Logic/workflows",
 "location": "[resourceGroup().location]",
 "tags": {
-"hidden-SentinelWorkspaceId": "/subscriptions/d0ac8505-9e2b-4e4d-b484-8b229b9e6328/resourceGroups/Sentinel/providers/microsoft.OperationalInsights/Workspaces/sentinel",
 "hidden-SentinelTemplateName": "ParsedAccountEntities",
 "hidden-SentinelTemplateVersion": "1.0"
 },
