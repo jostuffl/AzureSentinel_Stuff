@@ -1,0 +1,1519 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "metadata": {
+        "title": "",
+        "description": "",
+        "prerequisites": "",
+    "postDeployment": [],
+    "prerequisitesDeployTemplateFile": "",
+    "lastUpdateTime": "",
+"entities": [],
+"tags": [],
+"support": {
+"tier": "community",
+"armtemplate": "Generated from https://github.com/Azure/Azure-Sentinel/tree/master/Tools/Playbook-ARM-Template-Generator"
+},
+"author": {
+"name": ""
+}
+},
+"parameters": {
+"PlaybookName": {
+"defaultValue": "Aytpical_Travel",
+"type": "string"
+}
+},
+"variables": {
+"AzuremonitorlogsConnectionName": "[concat('Azuremonitorlogs-', parameters('PlaybookName'))]",
+"MicrosoftSentinelConnectionName": "[concat('MicrosoftSentinel-', parameters('PlaybookName'))]",
+"Office365ConnectionName": "[concat('Office365-', parameters('PlaybookName'))]",
+"TeamsConnectionName": "[concat('Teams-', parameters('PlaybookName'))]"
+},
+"resources": [
+{
+"properties": {
+    "provisioningState": "Succeeded",
+    "state": "Enabled",
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "parameters": {
+            "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "Microsoft_Sentinel_incident": {
+            "type": "ApiConnectionWebhook",
+            "inputs": {
+                "body": {
+                    "callback_url": "@{listCallbackUrl()}"
+                },
+                "host": {
+                    "connection": {
+                        "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                    }
+                },
+                "path": "/incident-creation"
+            }
+        }
+    },
+    "actions": {
+        "Entities_-_Get_Accounts": {
+            "runAfter": {
+                "Entities_-_Get_IPs": [
+                    "Succeeded"
+                ]
+            },
+            "type": "ApiConnection",
+            "inputs": {
+                "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+                "host": {
+                    "connection": {
+                        "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                    }
+                },
+                "method": "post",
+                "path": "/entities/account"
+            }
+        },
+        "Entities_-_Get_IPs": {
+            "runAfter": {
+                "Initialize_variable": [
+                    "Succeeded"
+                ]
+            },
+            "type": "ApiConnection",
+            "inputs": {
+                "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+                "host": {
+                    "connection": {
+                        "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                    }
+                },
+                "method": "post",
+                "path": "/entities/ip"
+            }
+        },
+        "ForEachAccount": {
+            "foreach": "@body('Entities_-_Get_Accounts')?['Accounts']",
+            "actions": {
+                "CheckIfRepeatOffender": {
+                "runAfter": {},
+                "type": "ApiConnection",
+                "inputs": {
+                    "body": {
+                        "query": "SecurityAlert\n| where TimeGenerated > ago(7d)\n| where AlertName contains \"Atypical\"\n| where Entities contains '@{items('ForEachAccount')?['aadUserId']}'\n| summarize HitCount = count()",
+                        "timerangetype": "3"
+                    },
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azuremonitorlogs_1']['connectionId']"
+                        }
+                    },
+                    "method": "post",
+                    "path": "/queryDataV2",
+                    "queries": {
+                        "resourcegroups": "Sentinel",
+                        "resourcename": "Sentinel",
+                        "resourcetype": "Log Analytics Workspace",
+                        "subscriptions": "d0ac8505-9e2b-4e4d-b484-8b229b9e6328"
+                    }
+                }
+            },
+            "Condition": {
+            "actions": {},
+            "runAfter": {
+                "ParseKqlRepeatOffender": [
+                    "Succeeded"
+                ]
+            },
+            "else": {
+                "actions": {
+                    "Condition_3": {
+                        "actions": {
+                            "Add_comment_to_incident_(V3)_5": {
+                            "runAfter": {},
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": {
+                                    "incidentArmId": "@triggerBody()?['object']?['id']",
+                                    "message": "<p>The user @{items('ForEachAccount')?['Name']} has successfully signed in from the ip address. Auto-closing.</p>"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/Incidents/Comment"
+                            }
+                        },
+                        "Update_incident_4": {
+                            "runAfter": {
+                                "Add_comment_to_incident_(V3)_5": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": {
+                                    "classification": {
+                                        "ClassificationAndReason": "BenignPositive - SuspiciousButExpected",
+                                        "ClassificationReasonText": "Auto-closing because user has signed in from this IP before."
+                                    },
+                                    "incidentArmId": "@triggerBody()?['object']?['id']",
+                                    "status": "Closed",
+                                    "tagsToAdd": {
+                                        "TagsToAdd": [
+                                            {
+                                                "Tag": "false positive"
+                                            },
+                                            {
+                                                "Tag": "autoclosed"
+                                            }
+                                        ]
+                                    }
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                    }
+                                },
+                                "method": "put",
+                                "path": "/Incidents"
+                            }
+                        }
+                    },
+                    "runAfter": {
+                        "ForEachIp": [
+                            "Succeeded"
+                        ]
+                    },
+                    "else": {
+                        "actions": {
+                            "AdaptiveCardCompose": {
+                                "runAfter": {
+                                    "ForEachNewIP": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "Compose",
+                                "inputs": {
+                                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                                    "actions": [
+                                        {
+                                            "id": "btnSubmit",
+                                            "title": "Submit",
+                                            "type": "Action.Submit"
+                                        }
+                                    ],
+                                    "body": [
+                                        {
+                                            "color": "Accent",
+                                            "horizontalAlignment": "Center",
+                                            "id": "Title",
+                                            "size": "ExtraLarge",
+                                            "spacing": "Medium",
+                                            "text": "Atypical Travel Alert ",
+                                            "type": "TextBlock",
+                                            "weight": "Bolder"
+                                        },
+                                        {
+                                            "id": "acHeader",
+                                            "size": "ExtraLarge",
+                                            "spacing": "None",
+                                            "text": "Sentinel Incident",
+                                            "type": "TextBlock",
+                                            "weight": "Bolder"
+                                        },
+                                        {
+                                            "id": "acInstructions",
+                                            "text": "There has been an Atypical Travel Alert! The  user @{items('ForEachAccount')?['Name']}  has had 0 successful sign-ins from the IPs listed below  in the last 30 days excluding the last 24 hours. IPs: @{variables('Ips')}",
+                                            "type": "TextBlock",
+                                            "wrap": true
+                                        },
+                                        {
+                                            "id": "acPollQuestion",
+                                            "text": "Action to Take",
+                                            "type": "TextBlock"
+                                        },
+                                        {
+                                            "choices": [
+                                                {
+                                                    "title": "Email User",
+                                                    "value": "Choice 1"
+                                                },
+                                                {
+                                                    "title": "Close as False Positive",
+                                                    "value": "Choice 2"
+                                                },
+                                                {
+                                                    "title": "Reset Password",
+                                                    "value": "Choice 3"
+                                                }
+                                            ],
+                                            "id": "acPollChoices",
+                                            "placeholder": "Select from these choices",
+                                            "style": "expanded",
+                                            "type": "Input.ChoiceSet"
+                                        }
+                                    ],
+                                    "type": "AdaptiveCard",
+                                    "version": "1.0"
+                                }
+                            },
+                            "ChoiceActions": {
+                                "runAfter": {
+                                    "TeamsCard": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "cases": {
+                                    "EmailUser": {
+                                        "case": "Choice 1",
+                                        "actions": {
+                                            "CheckIfUser": {
+                                                "runAfter": {
+                                                    "Send_email_with_options": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "cases": {
+                                                    "NotUser": {
+                                                        "case": "Not Me",
+                                                        "actions": {
+                                                            "Add_comment_to_incident_(V3)": {
+                                                            "runAfter": {},
+                                                            "type": "ApiConnection",
+                                                            "inputs": {
+                                                                "body": {
+                                                                    "incidentArmId": "@triggerBody()?['object']?['id']",
+                                                                    "message": "<p>User has indicated that this sign-in attempt was not them. Incident needs further investigation.</p>"
+                                                                },
+                                                                "host": {
+                                                                    "connection": {
+                                                                        "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                                                    }
+                                                                },
+                                                                "method": "post",
+                                                                "path": "/Incidents/Comment"
+                                                            }
+                                                        },
+                                                        "Update_incident_2": {
+                                                            "runAfter": {
+                                                                "Add_comment_to_incident_(V3)": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "ApiConnection",
+                                                            "inputs": {
+                                                                "body": {
+                                                                    "incidentArmId": "@triggerBody()?['object']?['id']",
+                                                                    "status": "Active",
+                                                                    "tagsToAdd": {
+                                                                        "TagsToAdd": [
+                                                                            {
+                                                                                "Tag": "Potential Threat"
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "host": {
+                                                                    "connection": {
+                                                                        "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                                                    }
+                                                                },
+                                                                "method": "put",
+                                                                "path": "/Incidents"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "UserConfirmed": {
+                                                    "case": "Me",
+                                                    "actions": {
+                                                        "Add_comment_to_incident_(V3)_4": {
+                                                        "runAfter": {},
+                                                        "type": "ApiConnection",
+                                                        "inputs": {
+                                                            "body": {
+                                                                "incidentArmId": "@triggerBody()?['object']?['id']",
+                                                                "message": "<p>User  has indicated that the event that generated this incident was them. Auto-closing this incident as false positive.</p>"
+                                                            },
+                                                            "host": {
+                                                                "connection": {
+                                                                    "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                                                }
+                                                            },
+                                                            "method": "post",
+                                                            "path": "/Incidents/Comment"
+                                                        }
+                                                    },
+                                                    "Update_incident": {
+                                                        "runAfter": {
+                                                            "Add_comment_to_incident_(V3)_4": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "ApiConnection",
+                                                        "inputs": {
+                                                            "body": {
+                                                                "classification": {
+                                                                    "ClassificationAndReason": "BenignPositive - SuspiciousButExpected",
+                                                                    "ClassificationReasonText": "User Indicated the sign-in attemp was them."
+                                                                },
+                                                                "incidentArmId": "@triggerBody()?['object']?['id']",
+                                                                "status": "Closed",
+                                                                "tagsToAdd": {
+                                                                    "TagsToAdd": [
+                                                                        {
+                                                                            "Tag": "false positive"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "host": {
+                                                                "connection": {
+                                                                    "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                                                }
+                                                            },
+                                                            "method": "put",
+                                                            "path": "/Incidents"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "default": {
+                                        "actions": {}
+                                    },
+                                    "expression": "@body('Send_email_with_options')?['SelectedOption']",
+                                    "type": "Switch"
+                                },
+                                "Send_email_with_options": {
+                                "runAfter": {},
+                                "type": "ApiConnectionWebhook",
+                                "inputs": {
+                                    "body": {
+                                        "Message": {
+                                            "Body": "Your account has triggered an internal security alert. This is an automated email to help us understand if this event was actually you, or if it was triggered from a potentially malicious actor. ",
+                                            "HideHTMLMessage": false,
+                                            "HideMicrosoftFooter": false,
+                                            "Importance": "High",
+                                            "Options": "Me, Not Me",
+                                            "SelectionText": "From the options below let us know if this was you or not.",
+                                            "ShowHTMLConfirmationDialog": false,
+                                            "Subject": "Your Account has Triggered a Security Alert!",
+                                            "To": "@{items('ForEachAccount')?['additionalData']?['MailAddress']}"
+                                        },
+                                        "NotificationUrl": "@{listCallbackUrl()}"
+                                    },
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['office365_1']['connectionId']"
+                                        }
+                                    },
+                                    "path": "/mailwithoptions/$subscriptions"
+                                }
+                            }
+                        }
+                    },
+                    "FalsePositive": {
+                        "case": "Choice 2",
+                        "actions": {
+                            "Add_comment_to_incident_(V3)_2": {
+                            "runAfter": {},
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": {
+                                    "incidentArmId": "@triggerBody()?['object']?['id']",
+                                    "message": "<p>An administrator has classified this as a false positive. Automatically closing the incident.</p>"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/Incidents/Comment"
+                            }
+                        },
+                        "Update_incident_3": {
+                            "runAfter": {
+                                "Add_comment_to_incident_(V3)_2": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": {
+                                    "classification": {
+                                        "ClassificationAndReason": "BenignPositive - SuspiciousButExpected",
+                                        "ClassificationReasonText": "An Administrator has specified this incident as a false positive. Auto-closing."
+                                    },
+                                    "incidentArmId": "@triggerBody()?['object']?['id']",
+                                    "status": "Closed",
+                                    "tagsToAdd": {
+                                        "TagsToAdd": [
+                                            {
+                                                "Tag": "False Positive"
+                                            }
+                                        ]
+                                    }
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                    }
+                                },
+                                "method": "put",
+                                "path": "/Incidents"
+                            }
+                        }
+                    }
+                },
+                "ResetPassword": {
+                    "case": "Choice 3",
+                    "actions": {
+                        "BodyForWebHook": {
+                        "runAfter": {},
+                        "type": "Compose",
+                        "inputs": [
+                            {
+                                "Account": "@{body('ParseAccounts')?['additionalData']?['UpnName']}",
+                                "IncidentID": "@{triggerBody()?['object']?['id']}"
+                            }
+                        ]
+                    },
+                    "CallWebHook": {
+                        "runAfter": {
+                            "BodyForWebHook": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Http",
+                        "inputs": {
+                            "body": "@outputs('BodyForWebHook')",
+                            "method": "POST",
+                            "uri": "https://prod-68.eastus.logic.azure.com:443/workflows/147adb6ba63842b385c4ff7347db25bc/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=H92wG-0pDeol4_Rcn2rYFj0nvwiCAcLtSLkEmv9T-SU"
+                        }
+                    }
+                }
+            }
+        },
+        "default": {
+        "actions": {}
+    },
+    "expression": "@body('TeamsCard')['data']['acPollChoices']",
+    "type": "Switch"
+},
+"ForEachNewIP": {
+    "foreach": "@variables('Ips')",
+    "actions": {
+        "Compose": {
+        "runAfter": {},
+        "type": "Compose",
+        "inputs": "@replace(item(), ' ', '')"
+    },
+    "Create_HTML_table": {
+        "runAfter": {
+            "ParseGeoIpLookup": [
+                "Succeeded"
+            ]
+        },
+        "type": "Table",
+        "inputs": {
+            "format": "HTML",
+            "from": "@array(body('ParseGeoIpLookup'))"
+        }
+    },
+    "FormatGeoIp": {
+        "runAfter": {
+            "Create_HTML_table": [
+                "Succeeded"
+            ]
+        },
+        "type": "Compose",
+        "inputs": "<p><span style=\"font-size:22px\"><span style=\"color:#e74c3c\"><strong>ATypical Travel Incident!</strong></span></span></p>\n\n<p><u><span style=\"font-size:16px;\"><strong>Incident Details:</strong></span></u><br />\n<span style=\"font-size: 14px;\"><strong>Title:</strong> @{triggerBody()?['object']?['properties']?['title']}<br />\n<strong>Description</strong>: @{triggerBody()?['object']?['properties']?['description']}<br />\n<strong>Severity:</strong> @{triggerBody()?['object']?['properties']?['severity']}</span></p>\n\n<p>&nbsp;</p>\n\n<p><span style=\"font-size:14px\"><strong>Incident Url</strong>&nbsp;= <a href=\"https://@{body('Create_HTML_table')}\">Navigate to Incident</a></span></p>\n\n<p><span style=\"font-size:14px\"><strong>Geo Location Data =</strong>&nbsp;<strong>@{body('Create_HTML_table')}</strong></span></p>\n\n<p><em><span style=\"font-size:14px\">You will receive a Teams message asking what action you want to take on this incident, if any.</span></em></p>"
+    },
+    "GeoIpLookup": {
+        "runAfter": {
+            "Compose": [
+                "Succeeded"
+            ]
+        },
+        "type": "Http",
+        "inputs": {
+            "method": "GET",
+            "uri": "http://ip-api.com/json/@{outputs('Compose')}?fields=192505"
+        }
+    },
+    "ParseGeoIpLookup": {
+        "runAfter": {
+            "GeoIpLookup": [
+                "Succeeded"
+            ]
+        },
+        "type": "ParseJson",
+        "inputs": {
+            "content": "@body('GeoIpLookup')",
+            "schema": {
+                "properties": {
+                    "as": {
+                        "type": "string"
+                    },
+                    "city": {
+                        "type": "string"
+                    },
+                    "country": {
+                        "type": "string"
+                    },
+                    "isp": {
+                        "type": "string"
+                    },
+                    "lat": {
+                        "type": "number"
+                    },
+                    "lon": {
+                        "type": "number"
+                    },
+                    "org": {
+                        "type": "string"
+                    },
+                    "proxy": {
+                        "type": "boolean"
+                    },
+                    "query": {
+                        "type": "string"
+                    },
+                    "regionName": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "timezone": {
+                        "type": "string"
+                    },
+                    "zip": {
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            }
+        }
+    },
+    "Post_message_in_a_chat_or_channel": {
+        "runAfter": {
+            "FormatGeoIp": [
+                "Succeeded"
+            ]
+        },
+        "type": "ApiConnection",
+        "inputs": {
+            "body": {
+                "messageBody": "<p><br>\n@{outputs('FormatGeoIp')}<br>\n<br>\n</p>",
+                "recipient": {
+                    "channelId": "19:x5roUlg-ow-YaJwbqCOEdshD6-w43hj7rYRLErAZ2xI1@thread.tacv2",
+                    "groupId": "4be64e17-6714-435c-8a33-8c98371bb316"
+                }
+            },
+            "host": {
+                "connection": {
+                    "name": "@parameters('$connections')['teams']['connectionId']"
+                }
+            },
+            "method": "post",
+            "path": "/beta/teams/conversation/message/poster/Flow bot/location/@{encodeURIComponent('Channel')}"
+        }
+    }
+},
+"runAfter": {},
+"type": "Foreach"
+},
+"TeamsCard": {
+"runAfter": {
+"AdaptiveCardCompose": [
+    "Succeeded"
+]
+},
+"type": "ApiConnectionWebhook",
+"inputs": {
+"body": {
+    "body": {
+        "messageBody": "@{outputs('AdaptiveCardCompose')}",
+        "recipient": {
+            "channelId": "19:x5roUlg-ow-YaJwbqCOEdshD6-w43hj7rYRLErAZ2xI1@thread.tacv2",
+            "groupId": "4be64e17-6714-435c-8a33-8c98371bb316"
+        },
+        "updateMessage": "Action Submitted!"
+    },
+    "notificationUrl": "@{listCallbackUrl()}"
+},
+"host": {
+    "connection": {
+        "name": "@parameters('$connections')['teams']['connectionId']"
+    }
+},
+"path": "/v1.0/teams/conversation/gatherinput/poster/Flow bot/location/@{encodeURIComponent('Channel')}/$subscriptions"
+}
+}
+}
+},
+"expression": {
+"and": [
+{
+"greater": [
+"@variables('SuccessfulIPSignin')",
+1
+]
+},
+{
+"equals": [
+"@variables('Ips')",
+""
+]
+}
+]
+},
+"type": "If"
+},
+"ForEachIp": {
+"foreach": "@body('Entities_-_Get_IPs')?['IPs']",
+"actions": {
+"CheckSigninHistory": {
+"runAfter": {},
+"type": "ApiConnection",
+"inputs": {
+"body": {
+"query": "SigninLogs\n| where TimeGenerated > ago(30d) and TimeGenerated < ago(72h)\n| extend UserPrincipalName = tolower(UserPrincipalName)\n| where UserPrincipalName contains tolower(\"@{items('ForEachAccount')?['Name']}\")\n| where IPAddress == \"@{items('ForEachIp')?['Address']}\"\n| extend PreviouslyLoggedIn = iff(ResultType == 0,\"Yes\",\"No\")\n| where PreviouslyLoggedIn == \"Yes\"\n| summarize max(TimeGenerated) by PreviouslyLoggedIn\n| project PreviouslyLoggedIn",
+"timerangetype": "3"
+},
+"host": {
+"connection": {
+"name": "@parameters('$connections')['azuremonitorlogs_1']['connectionId']"
+}
+},
+"method": "post",
+"path": "/queryDataV2",
+"queries": {
+"resourcegroups": "Sentinel",
+"resourcename": "Sentinel",
+"resourcetype": "Log Analytics Workspace",
+"subscriptions": "d0ac8505-9e2b-4e4d-b484-8b229b9e6328"
+}
+}
+},
+"Condition_2": {
+"actions": {
+"Increment_variable": {
+"runAfter": {},
+"type": "IncrementVariable",
+"inputs": {
+"name": "SuccessfulIPSignin",
+"value": 1
+}
+}
+},
+"runAfter": {
+"ParseKqlResults": [
+"Succeeded"
+]
+},
+"else": {
+"actions": {
+"Append_to_array_variable": {
+"runAfter": {},
+"type": "AppendToArrayVariable",
+"inputs": {
+"name": "Ips",
+"value": " @{items('ForEachIp')?['Address']}"
+}
+}
+}
+},
+"expression": {
+"and": [
+{
+"equals": [
+"@body('ParseKqlResults')?['value']?[0]?['PreviouslyLoggedIn']",
+"Yes"
+]
+}
+]
+},
+"type": "If"
+},
+"ParseKqlResults": {
+"runAfter": {
+"CheckSigninHistory": [
+"Succeeded"
+]
+},
+"type": "ParseJson",
+"inputs": {
+"content": "@body('CheckSigninHistory')",
+"schema": {
+"properties": {
+"value": {
+"items": {
+"properties": {
+    "PreviouslyLoggedIn": {
+        "type": "string"
+    }
+},
+"required": [
+    "PreviouslyLoggedIn"
+],
+"type": "object"
+},
+"type": "array"
+}
+},
+"type": "object"
+}
+}
+}
+},
+"runAfter": {},
+"type": "Foreach"
+}
+}
+},
+"expression": {
+"and": [
+{
+"less": [
+"@body('ParseKqlRepeatOffender')?['value']?[0]?['HitCount']",
+5
+]
+}
+]
+},
+"type": "If"
+},
+"ParseAccounts": {
+"runAfter": {
+"CheckIfRepeatOffender": [
+"Succeeded"
+]
+},
+"type": "ParseJson",
+"inputs": {
+"content": "@items('ForEachAccount')",
+"schema": {
+"properties": {
+"Name": {
+"type": "string"
+},
+"Type": {
+"type": "string"
+},
+"aadTenantId": {
+"type": "string"
+},
+"aadUserId": {
+"type": "string"
+},
+"accountName": {
+"type": "string"
+},
+"additionalData": {
+"properties": {
+"GivenName": {
+"type": "string"
+},
+"IsDeleted": {
+"type": "string"
+},
+"IsEnabled": {
+"type": "string"
+},
+"MailAddress": {
+"type": "string"
+},
+"ManagerName": {
+"type": "string"
+},
+"Sources": {
+"type": "string"
+},
+"Surname": {
+"type": "string"
+},
+"SyncFromAad": {
+"type": "string"
+},
+"UpnName": {
+"type": "string"
+},
+"UserType": {
+"type": "string"
+}
+},
+"type": "object"
+},
+"displayName": {
+"type": "string"
+},
+"friendlyName": {
+"type": "string"
+},
+"isDomainJoined": {
+"type": "boolean"
+},
+"upnSuffix": {
+"type": "string"
+}
+},
+"type": "object"
+}
+}
+},
+"ParseKqlRepeatOffender": {
+"runAfter": {
+"ParseAccounts": [
+"Succeeded"
+]
+},
+"type": "ParseJson",
+"inputs": {
+"content": "@body('CheckIfRepeatOffender')",
+"schema": {
+"properties": {
+"value": {
+"items": {
+"properties": {
+"HitCount": {
+"type": "integer"
+}
+},
+"required": [
+"HitCount"
+],
+"type": "object"
+},
+"type": "array"
+}
+},
+"type": "object"
+}
+}
+}
+},
+"runAfter": {
+"SuccessfulIPSignin": [
+"Succeeded"
+]
+},
+"type": "Foreach",
+"runtimeConfiguration": {
+"concurrency": {
+"repetitions": 1
+}
+}
+},
+"Initialize_variable": {
+"runAfter": {
+"Parse_JSON": [
+"Succeeded"
+]
+},
+"type": "InitializeVariable",
+"inputs": {
+"variables": [
+{
+"name": "RepeatOffender",
+"type": "string"
+}
+]
+}
+},
+"Ips_Variable": {
+"runAfter": {
+"Entities_-_Get_Accounts": [
+"Succeeded"
+]
+},
+"type": "InitializeVariable",
+"inputs": {
+"variables": [
+{
+"name": "Ips",
+"type": "array"
+}
+]
+}
+},
+"Parse_JSON": {
+"runAfter": {},
+"type": "ParseJson",
+"inputs": {
+"content": "@triggerBody()",
+"schema": {
+"properties": {
+"eventUniqueId": {
+"type": "string"
+},
+"object": {
+"properties": {
+"etag": {
+"type": "string"
+},
+"id": {
+"type": "string"
+},
+"name": {
+"type": "string"
+},
+"properties": {
+"properties": {
+"additionalData": {
+"properties": {
+"alertProductNames": {
+"items": {
+"type": "string"
+},
+"type": "array"
+},
+"alertsCount": {
+"type": "integer"
+},
+"bookmarksCount": {
+"type": "integer"
+},
+"commentsCount": {
+"type": "integer"
+},
+"tactics": {
+"type": "array"
+},
+"techniques": {
+"type": "array"
+}
+},
+"type": "object"
+},
+"alerts": {
+"items": {
+"properties": {
+"id": {
+"type": "string"
+},
+"kind": {
+"type": "string"
+},
+"name": {
+"type": "string"
+},
+"properties": {
+"properties": {
+"additionalData": {
+"properties": {
+"Alert generation status": {
+    "type": "string"
+},
+"Analytic Rule Ids": {
+    "type": "string"
+},
+"Analytic Rule Name": {
+    "type": "string"
+},
+"Correlation Id": {
+    "type": "string"
+},
+"Event Grouping": {
+    "type": "string"
+},
+"ProcessedBySentinel": {
+    "type": "string"
+},
+"Query": {
+    "type": "string"
+},
+"Query End Time UTC": {
+    "type": "string"
+},
+"Query Period": {
+    "type": "string"
+},
+"Query Start Time UTC": {
+    "type": "string"
+},
+"Search Query Results Overall Count": {
+    "type": "string"
+},
+"Trigger Operator": {
+    "type": "string"
+},
+"Trigger Threshold": {
+    "type": "string"
+}
+},
+"type": "object"
+},
+"alertDisplayName": {
+"type": "string"
+},
+"alertType": {
+"type": "string"
+},
+"confidenceLevel": {
+"type": "string"
+},
+"endTimeUtc": {
+"type": "string"
+},
+"friendlyName": {
+"type": "string"
+},
+"processingEndTime": {
+"type": "string"
+},
+"productComponentName": {
+"type": "string"
+},
+"productName": {
+"type": "string"
+},
+"providerAlertId": {
+"type": "string"
+},
+"resourceIdentifiers": {
+"items": {
+"properties": {
+    "type": {
+        "type": "string"
+    },
+    "workspaceId": {
+        "type": "string"
+    }
+},
+"required": [
+    "type",
+    "workspaceId"
+],
+"type": "object"
+},
+"type": "array"
+},
+"severity": {
+"type": "string"
+},
+"startTimeUtc": {
+"type": "string"
+},
+"status": {
+"type": "string"
+},
+"systemAlertId": {
+"type": "string"
+},
+"tactics": {
+"type": "array"
+},
+"timeGenerated": {
+"type": "string"
+},
+"vendorName": {
+"type": "string"
+}
+},
+"type": "object"
+},
+"type": {
+"type": "string"
+}
+},
+"required": [
+"id",
+"name",
+"type",
+"kind",
+"properties"
+],
+"type": "object"
+},
+"type": "array"
+},
+"bookmarks": {
+"type": "array"
+},
+"comments": {
+"items": {
+"properties": {
+"etag": {
+"type": "string"
+},
+"id": {
+"type": "string"
+},
+"name": {
+"type": "string"
+},
+"properties": {
+"properties": {
+"author": {
+"properties": {
+"email": {},
+"name": {
+"type": "string"
+},
+"objectId": {},
+"userPrincipalName": {}
+},
+"type": "object"
+},
+"createdTimeUtc": {
+"type": "string"
+},
+"lastModifiedTimeUtc": {
+"type": "string"
+},
+"message": {
+"type": "string"
+}
+},
+"type": "object"
+},
+"type": {
+"type": "string"
+}
+},
+"required": [
+"id",
+"name",
+"etag",
+"type",
+"properties"
+],
+"type": "object"
+},
+"type": "array"
+},
+"createdTimeUtc": {
+"type": "string"
+},
+"description": {
+"type": "string"
+},
+"firstActivityTimeUtc": {
+"type": "string"
+},
+"incidentNumber": {
+"type": "integer"
+},
+"incidentUrl": {
+"type": "string"
+},
+"labels": {
+"items": {
+"properties": {
+"labelName": {
+"type": "string"
+},
+"labelType": {
+"type": "string"
+}
+},
+"required": [
+"labelName",
+"labelType"
+],
+"type": "object"
+},
+"type": "array"
+},
+"lastActivityTimeUtc": {
+"type": "string"
+},
+"lastModifiedTimeUtc": {
+"type": "string"
+},
+"owner": {
+"properties": {
+"assignedTo": {},
+"email": {},
+"objectId": {},
+"userPrincipalName": {}
+},
+"type": "object"
+},
+"providerIncidentId": {
+"type": "string"
+},
+"providerName": {
+"type": "string"
+},
+"relatedAnalyticRuleIds": {
+"items": {
+"type": "string"
+},
+"type": "array"
+},
+"relatedEntities": {
+"items": {
+"properties": {
+"id": {
+"type": "string"
+},
+"kind": {
+"type": "string"
+},
+"name": {
+"type": "string"
+},
+"properties": {
+"properties": {
+"aadTenantId": {
+"type": "string"
+},
+"aadUserId": {
+"type": "string"
+},
+"accountName": {
+"type": "string"
+},
+"additionalData": {
+"properties": {
+"GivenName": {
+"type": "string"
+},
+"IsDeleted": {
+"type": "string"
+},
+"IsEnabled": {
+"type": "string"
+},
+"MailAddress": {
+"type": "string"
+},
+"ManagerName": {
+"type": "string"
+},
+"Sources": {
+"type": "string"
+},
+"Surname": {
+"type": "string"
+},
+"SyncFromAad": {
+"type": "string"
+},
+"UpnName": {
+"type": "string"
+},
+"UserType": {
+"type": "string"
+}
+},
+"type": "object"
+},
+"displayName": {
+"type": "string"
+},
+"friendlyName": {
+"type": "string"
+},
+"isDomainJoined": {
+"type": "boolean"
+},
+"upnSuffix": {
+"type": "string"
+}
+},
+"type": "object"
+},
+"type": {
+"type": "string"
+}
+},
+"required": [
+"id",
+"name",
+"type",
+"kind",
+"properties"
+],
+"type": "object"
+},
+"type": "array"
+},
+"severity": {
+"type": "string"
+},
+"status": {
+"type": "string"
+},
+"title": {
+"type": "string"
+}
+},
+"type": "object"
+},
+"type": {
+"type": "string"
+}
+},
+"type": "object"
+},
+"objectEventType": {
+"type": "string"
+},
+"objectSchemaType": {
+"type": "string"
+},
+"workspaceId": {
+"type": "string"
+},
+"workspaceInfo": {
+"properties": {
+"ResourceGroupName": {
+"type": "string"
+},
+"SubscriptionId": {
+"type": "string"
+},
+"WorkspaceName": {
+"type": "string"
+}
+},
+"type": "object"
+}
+},
+"type": "object"
+}
+}
+},
+"SuccessfulIPSignin": {
+"runAfter": {
+"Ips_Variable": [
+"Succeeded"
+]
+},
+"type": "InitializeVariable",
+"inputs": {
+"variables": [
+{
+"name": "SuccessfulIPSignin",
+"type": "integer",
+"value": 0
+}
+]
+}
+}
+},
+"outputs": {}
+},
+"parameters": {
+"$connections": {
+"value": {
+"azuremonitorlogs_1": {
+"connectionId": "[resourceId('Microsoft.Web/connections', variables('AzuremonitorlogsConnectionName'))]",
+"connectionName": "[variables('AzuremonitorlogsConnectionName')]",
+"id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Azuremonitorlogs')]"
+},
+"azuresentinel": {
+"connectionId": "[resourceId('Microsoft.Web/connections', variables('MicrosoftSentinelConnectionName'))]",
+"connectionName": "[variables('MicrosoftSentinelConnectionName')]",
+"id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Azuresentinel')]",
+"connectionProperties": {
+"authentication": {
+"type": "ManagedServiceIdentity"
+}
+}
+},
+"office365_1": {
+"connectionId": "[resourceId('Microsoft.Web/connections', variables('Office365ConnectionName'))]",
+"connectionName": "[variables('Office365ConnectionName')]",
+"id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Office365')]"
+},
+"teams": {
+"connectionId": "[resourceId('Microsoft.Web/connections', variables('TeamsConnectionName'))]",
+"connectionName": "[variables('TeamsConnectionName')]",
+"id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Teams')]"
+}
+}
+}
+}
+},
+"name": "[parameters('PlaybookName')]",
+"type": "Microsoft.Logic/workflows",
+"location": "[resourceGroup().location]",
+"identity": {
+"type": "SystemAssigned"
+},
+"tags": {
+"hidden-SentinelTemplateName": "Aytpical_Travel",
+"hidden-SentinelTemplateVersion": "1.0"
+},
+"apiVersion": "2017-07-01",
+"dependsOn": [
+"[resourceId('Microsoft.Web/connections', variables('AzuremonitorlogsConnectionName'))]",
+"[resourceId('Microsoft.Web/connections', variables('MicrosoftSentinelConnectionName'))]",
+"[resourceId('Microsoft.Web/connections', variables('Office365ConnectionName'))]",
+"[resourceId('Microsoft.Web/connections', variables('TeamsConnectionName'))]"
+]
+},
+{
+"type": "Microsoft.Web/connections",
+"apiVersion": "2016-06-01",
+"name": "[variables('AzuremonitorlogsConnectionName')]",
+"location": "[resourceGroup().location]",
+"kind": "V1",
+"properties": {
+"displayName": "[variables('AzuremonitorlogsConnectionName')]",
+"customParameterValues": {},
+"api": {
+"id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Azuremonitorlogs')]"
+}
+}
+},
+{
+"type": "Microsoft.Web/connections",
+"apiVersion": "2016-06-01",
+"name": "[variables('MicrosoftSentinelConnectionName')]",
+"location": "[resourceGroup().location]",
+"kind": "V1",
+"properties": {
+"displayName": "[variables('MicrosoftSentinelConnectionName')]",
+"customParameterValues": {},
+"parameterValueType": "Alternative",
+"api": {
+"id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Azuresentinel')]"
+}
+}
+},
+{
+"type": "Microsoft.Web/connections",
+"apiVersion": "2016-06-01",
+"name": "[variables('Office365ConnectionName')]",
+"location": "[resourceGroup().location]",
+"kind": "V1",
+"properties": {
+"displayName": "[variables('Office365ConnectionName')]",
+"customParameterValues": {},
+"api": {
+"id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Office365')]"
+}
+}
+},
+{
+"type": "Microsoft.Web/connections",
+"apiVersion": "2016-06-01",
+"name": "[variables('TeamsConnectionName')]",
+"location": "[resourceGroup().location]",
+"kind": "V1",
+"properties": {
+"displayName": "[variables('TeamsConnectionName')]",
+"customParameterValues": {},
+"api": {
+"id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Teams')]"
+}
+}
+}
+]
+}
