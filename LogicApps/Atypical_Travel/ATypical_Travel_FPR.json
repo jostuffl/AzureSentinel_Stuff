@@ -1,0 +1,132 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "metadata": {
+        "title": "",
+        "description": "",
+        "prerequisites": "",
+    "postDeployment": [],
+    "prerequisitesDeployTemplateFile": "",
+    "lastUpdateTime": "",
+"entities": [],
+"tags": [],
+"support": {
+"tier": "community",
+"armtemplate": "Generated from https://github.com/Azure/Azure-Sentinel/tree/master/Tools/Playbook-ARM-Template-Generator"
+},
+"author": {
+"name": ""
+}
+},
+"parameters": {
+"PlaybookName": {
+"defaultValue": "ATypical_Travel_FPR",
+"type": "string"
+}
+},
+"variables": {},
+"resources": [
+{
+"properties": {
+"provisioningState": "Succeeded",
+"state": "Enabled",
+"definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "$connections": {
+        "defaultValue": {},
+        "type": "Object"
+    }
+},
+"triggers": {
+    "manual": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+            "schema": {
+                "items": {
+                    "properties": {
+                        "Account": {
+                            "type": "string"
+                        },
+                        "IncidentID": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "Account",
+                        "IncidentID"
+                    ],
+                    "type": "object"
+                },
+                "type": "array"
+            },
+            "method": "POST"
+        }
+    }
+},
+"actions": {
+    "HTTP": {
+    "runAfter": {},
+    "type": "Http",
+    "inputs": {
+        "uri": "https://graph.microsoft.com/v1.0/users/@{triggerBody()[0]?['Account']}",
+        "method": "PATCH",
+        "body": {
+            "passwordProfile": {
+                "forceChangePasswordNextSignIn": true,
+                "forceChangePasswordNextSignInWithMfa": false
+            }
+        },
+        "authentication": {
+            "audience": "https://graph.microsoft.com",
+            "type": "ManagedServiceIdentity"
+        }
+    }
+},
+"HTTP_1": {
+    "runAfter": {
+        "HTTP": [
+            "Succeeded"
+        ]
+    },
+    "type": "Http",
+    "inputs": {
+        "uri": "https://graph.microsoft.com/v1.0/users/@{triggerBody()[0]?['Account']}/revokeSignInSessions",
+        "method": "POST",
+        "authentication": {
+            "type": "ManagedServiceIdentity",
+            "audience": "https://graph.microsoft.com"
+        }
+    },
+    "runtimeConfiguration": {
+        "contentTransfer": {
+            "transferMode": "Chunked"
+        }
+    }
+}
+},
+"outputs": {}
+},
+"parameters": {
+"$connections": {
+"value": {}
+}
+}
+},
+"name": "[parameters('PlaybookName')]",
+"type": "Microsoft.Logic/workflows",
+"location": "[resourceGroup().location]",
+"identity": {
+"type": "SystemAssigned"
+},
+"tags": {
+"hidden-SentinelTemplateName": "ATypical_Travel_FPR",
+"hidden-SentinelTemplateVersion": "1.0"
+},
+"apiVersion": "2017-07-01",
+"dependsOn": []
+}
+]
+}
