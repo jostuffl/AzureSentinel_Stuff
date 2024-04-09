@@ -1,4 +1,4 @@
-# Atypical Travel Automation
+# Atypical Travel Automation Part 1
 
 This is an automation to help with the scenario where users are triggering multiple Atypical Travel Sentinel incidents.
 It checks to see if they have triggered the incident 5 or more times, and depending on that either proceeds with the automation,
@@ -16,10 +16,26 @@ in a teams message to a channel, then sends a teams card to a channel with 3 opt
   - That logic app is called "ATypical_Travel_FPR" and it can be found under the Logicapps section in this repository.
  
 
-  You will need to authorize the api connections for the various services in the logic app. I recommend using a managed identity for any service that supports it.
-  If a managed identity is not supported by a service / api connection, use a dedicated account specifically meant for authorizing api connections rather than your own
-  user account.
+You will need to authorize the api connections for the various services in the logic app. I recommend using a managed identity for any service that supports it.
+If a managed identity is not supported by a service / api connection, use a dedicated account specifically meant for authorizing api connections rather than your own
+user account.
 
-  Deploy it to Azure
+Deploy it to Azure
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fjostuffl%2FAzureSentinel_Stuff%2Fmain%2FLogicApps%2FAtypical_Travel%2FAtypical_Travel.json)
+
+----
+
+# ATypical_Travel_FPR Part 2
+This automation is triggered via webhook and expects a specific body schema. Of course the schema could be adjusted to fit your needs if you decide to use it
+with a different logic app than the one this is paired with in this repository. All this logic app does is force password reset at next sign-in,
+and revoke the user's sessions. It is the second part of the Atypical_Travel automation.
+
+The managed identity for this logic app requires:
+- **Password Administrator** in Entra ID
+- **User.ReadWrite.All** Graph permission
+- **Directory.ReadWrite.All** Graph permission (I can't remember if this is actually required, so you could just grant the other two permissions, test it, if it fails add this one.
+
+Deploy it to Azure
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fjostuffl%2FAzureSentinel_Stuff%2Fmain%2FLogicApps%2FAtypical_Travel%2FATypical_Travel_FPR.json)
