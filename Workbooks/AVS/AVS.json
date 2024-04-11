@@ -1,0 +1,780 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "03c5af87-94db-4b17-9446-07305afa9069",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "type": 4,
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 300000
+                },
+                {
+                  "durationMs": 900000
+                },
+                {
+                  "durationMs": 1800000
+                },
+                {
+                  "durationMs": 3600000
+                },
+                {
+                  "durationMs": 14400000
+                },
+                {
+                  "durationMs": 43200000
+                },
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 172800000
+                },
+                {
+                  "durationMs": 259200000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 1209600000
+                },
+                {
+                  "durationMs": 2419200000
+                },
+                {
+                  "durationMs": 2592000000
+                },
+                {
+                  "durationMs": 5184000000
+                },
+                {
+                  "durationMs": 7776000000
+                }
+              ],
+              "allowCustom": true
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": {
+              "durationMs": 7776000000
+            }
+          },
+          {
+            "id": "f6cb5c01-4713-47e7-87c5-88ee4e615275",
+            "version": "KqlParameterItem/1.0",
+            "name": "Workspace",
+            "type": 5,
+            "isRequired": true,
+            "typeSettings": {
+              "resourceTypeFilter": {
+                "microsoft.operationalinsights/workspaces": true
+              },
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "value": null
+          },
+          {
+            "id": "f679fdce-9e96-4644-9a6d-2d78d7cd431e",
+            "version": "KqlParameterItem/1.0",
+            "name": "SourceIp",
+            "type": 1,
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": ""
+          },
+          {
+            "version": "KqlParameterItem/1.0",
+            "name": "DestinationIp",
+            "type": 1,
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": "",
+            "id": "ebc4e7d5-c789-4745-a394-2e5eed7361c1"
+          },
+          {
+            "version": "KqlParameterItem/1.0",
+            "name": "DestinationPort",
+            "type": 1,
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": "",
+            "id": "66ec7e1f-f45c-48f9-a271-cb5ce51ccdca"
+          },
+          {
+            "id": "0e6819e1-3ad2-44ba-ae78-8875c8258466",
+            "version": "KqlParameterItem/1.0",
+            "name": "Direction",
+            "type": 2,
+            "query": "let options= datatable(direction:string)[\r\n\"OUT\",\r\n\"IN\"\r\n];\r\noptions",
+            "typeSettings": {
+              "additionalResourceOptions": []
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "queryType": 0,
+            "resourceType": "microsoft.operationalinsights/workspaces",
+            "value": null
+          },
+          {
+            "version": "KqlParameterItem/1.0",
+            "name": "RuleId",
+            "label": "Rule Id",
+            "type": 1,
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": "",
+            "id": "9585364e-2851-480f-a545-339648ba3142"
+          },
+          {
+            "id": "59b3569f-c5dc-4b2a-9439-6daf8a71fa9a",
+            "version": "KqlParameterItem/1.0",
+            "name": "Action",
+            "type": 2,
+            "query": "let Options = datatable(option:string)[\r\n\"DROP\",\r\n\"PASS\",\r\n\"REJECT\"\r\n];\r\nOptions",
+            "typeSettings": {
+              "additionalResourceOptions": []
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "queryType": 0,
+            "resourceType": "microsoft.operationalinsights/workspaces",
+            "value": "PASS"
+          },
+          {
+            "id": "68dfee27-d124-420f-bfdc-11d42865624a",
+            "version": "KqlParameterItem/1.0",
+            "name": "Page",
+            "type": 11,
+            "isRequired": true,
+            "query": "let page= datatable(page:string)[\r\n\"Page 1\",\r\n\"Page 2\"\r\n];\r\npage",
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "queryType": 0,
+            "resourceType": "microsoft.operationalinsights/workspaces",
+            "value": "Page 1"
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters - 0"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Page 1",
+        "items": [
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let trend = \r\n    AVS\r\n    | make-series TrendLine = count(DestinationPort) on Timestamp from {TimeRange:start} to {TimeRange:end} step {TimeRange:grain} by DestinationPort;\r\nAVS\r\n| summarize PortConnectionCount = count() by DestinationPort\r\n| join (trend) on DestinationPort\r\n| extend DestinationPort = strcat(\"Port: \", DestinationPort)\r\n| sort by PortConnectionCount desc",
+              "size": 0,
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "tiles",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Timestamp",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "Action",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "DROP",
+                          "representation": "4",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "RuleId",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "Direction",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "OUT",
+                          "representation": "right",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "left",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "Protocol",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "TCP",
+                          "representation": "amethyst",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "blue",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "hierarchySettings": {
+                  "treeType": 1,
+                  "groupBy": [
+                    "RuleId"
+                  ],
+                  "finalBy": "RuleId"
+                }
+              },
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "DestinationPort"
+                },
+                "leftContent": {
+                  "columnMatch": "PortConnectionCount",
+                  "formatter": 4,
+                  "formatOptions": {
+                    "palette": "greenRed",
+                    "compositeBarSettings": {
+                      "labelText": "",
+                      "columnSettings": []
+                    }
+                  }
+                },
+                "secondaryContent": {
+                  "columnMatch": "TrendLine",
+                  "formatter": 9,
+                  "formatOptions": {
+                    "palette": "greenRed"
+                  }
+                },
+                "showBorder": true
+              }
+            },
+            "name": "query - 6"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AVS\r\n| where RuleId contains \"{RuleId}\"\r\n| where Action contains \"{Action}\"\r\n| where Direction contains \"{Direction}\"\r\n| where DestinationPort contains \"{DestinationPort}\"\r\n| project Timestamp, SourceIp, SourcePort, DestinationIp, DestinationPort, Direction, RuleId, Action\r\n| summarize count() by Action, bin(Timestamp, {TimeRange:grain})",
+              "size": 0,
+              "color": "redBright",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "unstackedbar"
+            },
+            "name": "query - 1"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AVS\r\n| where RuleId contains \"{RuleId}\"\r\n| where SourceIp has \"{SourceIp}\"\r\n| where Action contains \"{Action}\"\r\n| where DestinationIp has \"{DestinationIp}\"\r\n| where DestinationPort contains \"{DestinationPort}\"\r\n| project Timestamp, Id, INET, Reason, Action, RuleId, Direction, Protocol, SourceIp, SourcePort, DestinationIp, DestinationPort\r\n| sort by Timestamp desc",
+              "size": 0,
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Action",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "PASS",
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "failed",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "Direction",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "IN",
+                          "representation": "left",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "OUT",
+                          "representation": "right",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "unknown",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "Protocol",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "TCP",
+                          "representation": "blue",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "UDP",
+                          "representation": "amethyst",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "name": "query - 2"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AVS\r\n| where SourceIp contains \"{SourceIp}\"\r\n| summarize count() by SourceIp, bin(Timestamp,5m)",
+              "size": 0,
+              "title": "Count by Source Ip Over Time",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "timechart"
+            },
+            "customWidth": "50",
+            "name": "query - 3"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AVS\r\n| where DestinationIp contains \"{DestinationIp}\"\r\n| summarize count() by DestinationIp, bin(Timestamp,5m)",
+              "size": 0,
+              "title": "Count of Destination Ip Over Time",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "timechart"
+            },
+            "customWidth": "50",
+            "name": "query - 4"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AVS\r\n| where RuleId contains \"{RuleId}\"\r\n| summarize count() by RuleId, bin(Timestamp, 5m)",
+              "size": 0,
+              "title": "Count of Rule Id Over Time",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "timechart"
+            },
+            "customWidth": "50",
+            "name": "query - 5"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Page",
+        "comparison": "isEqualTo",
+        "value": "Page 1"
+      },
+      "name": "Page 1"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Page 2",
+        "items": [
+          {
+            "type": 9,
+            "content": {
+              "version": "KqlParameterItem/1.0",
+              "parameters": [
+                {
+                  "id": "c1231c89-3f66-45f7-a658-79ee328201e6",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "ConnectionsFilter",
+                  "label": "Connections Filters",
+                  "type": 2,
+                  "description": "Select either SourceIp or DestinationIp to filter the dropped connections visualization",
+                  "isRequired": true,
+                  "query": "let myfilter = datatable(filter:string)[\r\n\"SourceIp\",\r\n\"DestinationIp\",\r\n\"SourcePort\",\r\n\"Direction\",\r\n\"RuleId\",\r\n\"DestinationPort\"\r\n];\r\nmyfilter",
+                  "typeSettings": {
+                    "additionalResourceOptions": [],
+                    "showDefault": false
+                  },
+                  "timeContext": {
+                    "durationMs": 86400000
+                  },
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "value": "SourceIp"
+                },
+                {
+                  "id": "3ec77958-1951-4f5c-ba82-41b68693a5cf",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "TileFilter",
+                  "type": 2,
+                  "description": "Select a filter for the tile visualizations.",
+                  "query": "let TileFilter = datatable(filter:string)[\r\n\"Direction\",\r\n\"Protocol\"\r\n];\r\nTileFilter",
+                  "crossComponentResources": [
+                    "{Workspace}"
+                  ],
+                  "typeSettings": {
+                    "additionalResourceOptions": []
+                  },
+                  "timeContext": {
+                    "durationMs": 0
+                  },
+                  "timeContextFromParameter": "TimeRange",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "value": "Protocol"
+                },
+                {
+                  "id": "58095036-68bf-4021-8ce6-243a05df12ae",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "MapFilter",
+                  "type": 2,
+                  "description": "Select a filter for the map visualization",
+                  "query": "let table = datatable(filter:string)[\r\n\"DestinationIp\",\r\n\"SourceIp\"\r\n];\r\ntable",
+                  "typeSettings": {
+                    "additionalResourceOptions": []
+                  },
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "value": "DestinationIp"
+                }
+              ],
+              "style": "pills",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "name": "parameters - 4"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AVS\r\n| where Action == \"DROP\"\r\n| summarize FailureCount= count() by {ConnectionsFilter}\r\n| top 10 by FailureCount",
+              "size": 0,
+              "title": "Top 10 Dropped Connections by {ConnectionsFilter}",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "RuleId",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "blue"
+                  },
+                  "numberFormat": {
+                    "unit": 0,
+                    "options": {
+                      "style": "decimal"
+                    }
+                  }
+                },
+                "leftContent": {
+                  "columnMatch": "FailureCount",
+                  "formatter": 20,
+                  "formatOptions": {
+                    "palette": "greenRed"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 2,
+                      "maximumSignificantDigits": 3
+                    }
+                  }
+                },
+                "showBorder": false
+              },
+              "graphSettings": {
+                "type": 0,
+                "topContent": {
+                  "columnMatch": "SourceIp",
+                  "formatter": 1
+                },
+                "centerContent": {
+                  "columnMatch": "FailureCount",
+                  "formatter": 1,
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "maximumSignificantDigits": 3,
+                      "maximumFractionDigits": 2
+                    }
+                  }
+                }
+              }
+            },
+            "customWidth": "50",
+            "name": "query - 3"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AVS\r\n| where Action == \"PASS\"\r\n| summarize SuccessCount= count() by {ConnectionsFilter}\r\n| top 10 by SuccessCount",
+              "size": 0,
+              "title": "Top 10 Successful Connections by {ConnectionsFilter}",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart"
+            },
+            "customWidth": "50",
+            "name": "query - 5"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AVS\r\n| summarize Count = count() by {ConnectionsFilter}\r\n| top 10 by Count",
+              "size": 0,
+              "title": "Top 10 Count by {ConnectionsFilter}",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "query - 0"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let TimeChart = AVS\r\n| where \"{TileFilter}\" != \"\"\r\n| make-series Timeline=count() on Timestamp from {TimeRange:start} to {TimeRange:end} step {TimeRange:grain} by {TileFilter}\r\n| project {TileFilter}, Timeline;\r\nAVS\r\n| summarize ConnectionCount = count() by {TileFilter}\r\n| join TimeChart on {TileFilter}\r\n| extend FilterString = \"{TileFilter}\"\r\n| project-rename Filter = {TileFilter}\r\n",
+              "size": 0,
+              "title": "Protocol / Direction Count & Over Time",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "tiles",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Timeline",
+                    "formatter": 9,
+                    "formatOptions": {
+                      "palette": "greenRed"
+                    }
+                  },
+                  {
+                    "columnMatch": "Timestamp",
+                    "formatter": 9,
+                    "formatOptions": {
+                      "palette": "blue"
+                    }
+                  }
+                ]
+              },
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "FilterString",
+                  "formatter": 1
+                },
+                "subtitleContent": {
+                  "columnMatch": "Filter",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "ConnectionCount",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "greenRed"
+                  }
+                },
+                "secondaryContent": {
+                  "columnMatch": "Timeline",
+                  "formatter": 9,
+                  "formatOptions": {
+                    "palette": "greenRed"
+                  }
+                },
+                "showBorder": false
+              }
+            },
+            "customWidth": "50",
+            "name": "query - 6"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AVS\r\n| summarize Count = count() by {MapFilter}\r\n| extend Location = geo_info_from_ip_address({MapFilter})\r\n| extend Latitude = Location.latitude\r\n| extend Longitutde = Location.longitude\r\n| extend City = iff(Location == \"{}\" or isempty(Location.city), \"Unknown City\", Location.city)\r\n",
+              "size": 3,
+              "title": "Count of {MapFilter} by City",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "map",
+              "mapSettings": {
+                "locInfo": "LatLong",
+                "locInfoColumn": "Location",
+                "latitude": "Latitude",
+                "longitude": "Longitutde",
+                "sizeSettings": "Count",
+                "sizeAggregation": "Sum",
+                "labelSettings": "City",
+                "legendMetric": "Count",
+                "numberOfMetrics": 10,
+                "legendAggregation": "Sum",
+                "itemColorSettings": {
+                  "nodeColorField": "Count",
+                  "colorAggregation": "Sum",
+                  "type": "heatmap",
+                  "heatmapPalette": "greenRed"
+                }
+              }
+            },
+            "name": "query - 3"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Page",
+        "comparison": "isEqualTo",
+        "value": "Page 2"
+      },
+      "name": "Group2"
+    }
+  ],
+  "fromTemplateId": "https://sentinelus.hosting.portal.azure.net/sentinelus/Content/1.0.02472.3321-231008-211332/Scenarios/Ecosystem/Content/Workbooks/CustomWorkbook.json",
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
