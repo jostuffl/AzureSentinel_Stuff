@@ -1,0 +1,10 @@
+// This query shows your data ingestion every 24h over a 30 day period in GB for the two data grants: A5/E5/G5/F5 and Defender for Servers P2.
+
+Operation
+| where TimeGenerated > ago(30d)
+| where OperationCategory == "Billing"
+| parse Detail with "Benefit amount used: " AmountGB " GB"
+| parse OperationKey with "Benefit type used: " Product
+| extend AmountGB = todecimal(AmountGB)
+| project TimeGenerated, Product, AmountGB
+| sort by TimeGenerated desc
