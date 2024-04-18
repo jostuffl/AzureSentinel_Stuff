@@ -1,0 +1,11 @@
+// This query shows your average ingestion in GB for the A5/E5/G5/F5 and Defender for Servers P2 data grants over a 30 day period.
+
+Operation
+| where TimeGenerated > ago(30d)
+| where OperationCategory == "Billing"
+| parse Detail with "Benefit amount used: " AmountGB " GB"
+| parse OperationKey with "Benefit type used: " Product
+| extend AmountGB = todecimal(AmountGB)
+| sort by TimeGenerated desc
+| project TimeGenerated, Product, AmountGB
+| summarize avg(AmountGB) by Product
