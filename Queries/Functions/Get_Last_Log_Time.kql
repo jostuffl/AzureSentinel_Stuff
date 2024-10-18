@@ -1,0 +1,13 @@
+// I recommend saving this as a function if you plan to use it in an Analytic Rule.
+// Analytic Rules do not allow you to use "union *" directly for whatever reason
+// But if you save this query as a function, and then in the rule call the function name, it works...
+// If you make an analytic rule I recommend setting the Table column as a custom detail, and adding it to the alert name in the dynamic alert properties section
+// Otherwise you won't know what table the incident applies to.
+// Another benefit of the custom detail is you can use it in a logic app if you want to send email alerts
+// I have a logic app that pairs with this to send email alerts, I'll upload it at some point.
+// Also this formats the timestamps to EST. Can adjust if need be.
+union withsource=SourceTable *
+| summarize LastLogReceived = max(TimeGenerated) by SourceTable
+| extend LastLogReceivedLocal = datetime_add('hour', -4, LastLogReceived)
+| project TableName = SourceTable, LastLogReceived = format_datetime(LastLogReceivedLocal, "MM/dd/yyyy, h:mm:ss.fff tt")
+| order by LastLogReceived desc
