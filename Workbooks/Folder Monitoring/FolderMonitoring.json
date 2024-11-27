@@ -1,0 +1,247 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "768bdb49-20c7-4e61-90ea-b7ddbf0c6b7f",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "type": 4,
+            "isRequired": true,
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 300000
+                },
+                {
+                  "durationMs": 900000
+                },
+                {
+                  "durationMs": 1800000
+                },
+                {
+                  "durationMs": 3600000
+                },
+                {
+                  "durationMs": 14400000
+                },
+                {
+                  "durationMs": 43200000
+                },
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 172800000
+                },
+                {
+                  "durationMs": 259200000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 1209600000
+                },
+                {
+                  "durationMs": 2419200000
+                },
+                {
+                  "durationMs": 2592000000
+                },
+                {
+                  "durationMs": 5184000000
+                },
+                {
+                  "durationMs": 7776000000
+                }
+              ],
+              "allowCustom": true
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": {
+              "durationMs": 86400000
+            }
+          },
+          {
+            "id": "f285a6e7-52b1-4122-8c6f-4746463f1430",
+            "version": "KqlParameterItem/1.0",
+            "name": "Workspace",
+            "label": "Sentinel Workspace",
+            "type": 5,
+            "description": "This updates the visualizations to show data from the specific sentinel workspace.",
+            "isRequired": true,
+            "typeSettings": {
+              "resourceTypeFilter": {
+                "microsoft.operationalinsights/workspaces": true
+              },
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "value": ""
+          },
+          {
+            "id": "9ecdbcc7-0931-428b-bd6b-0a399cb511c2",
+            "version": "KqlParameterItem/1.0",
+            "name": "Path",
+            "type": 1,
+            "description": "Put in either a full or partial path to filter on.",
+            "isRequired": true,
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": "C:\\windows\\temp"
+          },
+          {
+            "id": "8da74fde-a00f-4b5a-83cb-5c2b4fe388dd",
+            "version": "KqlParameterItem/1.0",
+            "name": "File",
+            "type": 1,
+            "description": "Enter a full or partial filename to filter on.",
+            "isGlobal": true,
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": ""
+          },
+          {
+            "id": "3694eb2b-24e6-4cd6-958f-31db622bc264",
+            "version": "KqlParameterItem/1.0",
+            "name": "Action",
+            "type": 2,
+            "description": "Optionally select an action type to filter on.",
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "jsonData": "[\r\n        {\r\n            \"value\": \"FileCreated\",\r\n            \"label\": \"File Created\"\r\n        },\r\n        {\r\n            \"value\": \"FileModified\",\r\n            \"label\": \"File Modified\"\r\n        },\r\n        {\r\n            \"value\": \"FileRenamed\",\r\n            \"label\": \"File Renamed\"\r\n        },\r\n        {\r\n            \"value\": \"FileDeleted\",\r\n            \"label\": \"File Deleted\"\r\n        }\r\n    ]",
+            "value": null
+          },
+          {
+            "id": "671b1c61-912f-494a-918e-282c4ecd1ea4",
+            "version": "KqlParameterItem/1.0",
+            "name": "Account",
+            "type": 1,
+            "description": "Optionally enter a user account or partial user account to filter on.",
+            "value": ""
+          },
+          {
+            "id": "0ffd8dcd-89f1-4db4-a110-e0224f5306e1",
+            "version": "KqlParameterItem/1.0",
+            "name": "DeviceName",
+            "type": 1,
+            "description": "Enter a hostname to filter the results.",
+            "value": ""
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters - 0"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "DeviceFileEvents\r\n| where FolderPath contains @\"{Path}\"\r\n| where FileName contains \"{File}\" or isempty(\"{File}\")\r\n| where ActionType contains \"{Action}\" or isempty(\"{Action}\")\r\n| extend Account = strcat(\"👤\",tolower(iff(isempty(RequestAccountName), InitiatingProcessAccountName, RequestAccountName)))\r\n| where Account contains \"{Account}\" or isempty(\"{Account}\")\r\n| summarize count() by FileName, bin(TimeGenerated,{TimeRange:grain})",
+        "size": 0,
+        "title": "File Action Count Over Time",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "timechart"
+      },
+      "customWidth": "50",
+      "name": "CountOverTime",
+      "styleSettings": {
+        "showBorder": true
+      }
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "DeviceFileEvents\r\n| where FolderPath contains @\"{Path}\"\r\n| where FileName contains \"{File}\" or isempty(\"{File}\")\r\n| extend Account = strcat(\"👤\",tolower(iff(isempty(RequestAccountName), InitiatingProcessAccountName, RequestAccountName)))\r\n| where Account contains \"{Account}\" or isempty(\"{Account}\")\r\n| summarize count() by ActionType",
+        "size": 0,
+        "title": "Action Count",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "piechart"
+      },
+      "customWidth": "25",
+      "name": "ActionCount",
+      "styleSettings": {
+        "showBorder": true
+      }
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "DeviceFileEvents\r\n| where FolderPath contains @\"{Path}\"\r\n| where FileName contains \"{File}\" or isempty(\"{File}\")\r\n| where ActionType contains \"{Action}\" or isempty(\"{Action}\")\r\n| extend Account = strcat(\"👤\",tolower(iff(isempty(RequestAccountName), InitiatingProcessAccountName, RequestAccountName)))\r\n| where Account contains \"{Account}\" or isempty(\"{Account}\")\r\n| summarize ActionCount = count() by Account",
+        "size": 0,
+        "title": "UserCount",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ]
+      },
+      "customWidth": "25",
+      "name": "UserCount",
+      "styleSettings": {
+        "showBorder": true
+      }
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "DeviceFileEvents\r\n| where FolderPath contains @\"{Path}\"\r\n| where FileName contains \"{File}\" or isempty(\"{File}\")\r\n| where DeviceName contains \"{DeviceName}\"\r\n| where ActionType contains \"{Action}\" or isempty(\"{Action}\")\r\n| summarize OperationCount = count() by DeviceName, Account = strcat(\"👤\",tolower(iff(isempty(RequestAccountName), InitiatingProcessAccountName, RequestAccountName))), ActionType, File = strcat(\"📁\", FileName), Path = strcat(\"📂\", FolderPath)\r\n| where Account contains \"{Account}\" or isempty(\"{Account}\")",
+        "size": 0,
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Account",
+              "formatter": 5
+            }
+          ],
+          "rowLimit": 10000,
+          "hierarchySettings": {
+            "treeType": 1,
+            "groupBy": [
+              "Account"
+            ]
+          }
+        }
+      },
+      "name": "query - 1"
+    }
+  ],
+  "fallbackResourceIds": [
+    ""
+  ],
+  "fromTemplateId": "sentinel-UserWorkbook",
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
