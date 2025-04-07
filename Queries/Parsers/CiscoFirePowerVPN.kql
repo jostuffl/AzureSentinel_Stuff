@@ -1,5 +1,5 @@
-# Parses Cisco FirePower VPN logs ingested via Syslog (Not Estreamer)
-# Created by Jonathon Stufflebeam (Zerker) - 4-7-25
+// Parses Cisco FirePower VPN logs ingested via Syslog (Not Estreamer)
+// Created by Jonathon Stufflebeam (Zerker) - 4-7-25
 Syslog
 | where Facility == "Insert your Facility. Example: local0.info"
 | extend Date = extract("([0-9a-zA-Z:-]+)",1,SyslogMessage)
