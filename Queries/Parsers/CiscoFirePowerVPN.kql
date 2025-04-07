@@ -1,0 +1,15 @@
+# Parses Cisco FirePower VPN logs ingested via Syslog (Not Estreamer)
+# Created by Jonathon Stufflebeam (Zerker) - 4-7-25
+Syslog
+| where Facility == "Insert your Facility. Example: local0.info"
+| extend Date = extract("([0-9a-zA-Z:-]+)",1,SyslogMessage)
+| extend Group = extract("Group <([a-zA-Z]+)>",1,SyslogMessage)
+| extend Group = iff(isempty(Group),extract("Group = ([a-zA-Z0-9\\.@]+)",1,SyslogMessage), Group)
+| extend User = extract(@"User <([a-zA-Z@0-9\\.]+)",1,SyslogMessage)
+| extend User = iff(isempty(User), extract(@"Username = ([a-zA-Z@0-9\\.]+)",1,SyslogMessage), User)
+| extend Ip = extract("IP <([0-9\\.]+)",1,SyslogMessage)
+| extend Ip = iff(isempty(Ip), extract("IP = ([0-9\\.]+)",1,SyslogMessage), Ip)
+| extend Connected = iff(SyslogMessage contains "assigned", "Connected", "Disconnected")
+| extend Duration = extract("Duration: ([a-z0-9:]+)",1,SyslogMessage)
+| extend Reason = extract("Reason: ([a-zA-Z ]+)",1,SyslogMessage)
+| project-reorder TimeGenerated, Date, User, Group, Ip, Connected, Duration, Reason
