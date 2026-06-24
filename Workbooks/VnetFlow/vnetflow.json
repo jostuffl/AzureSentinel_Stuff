@@ -317,12 +317,47 @@
             "value": null
           },
           {
+            "id": "64ef0972-89ee-4892-8804-39f10bf33e62",
+            "version": "KqlParameterItem/1.0",
+            "name": "ColumnsToShow",
+            "label": "Details Selector",
+            "type": 2,
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "",
+            "delimiter": ",",
+            "query": "NTANetAnalytics\r\n| where SubType == 'FlowLog' and FaSchemaVersion == '3'\r\n| where AclRule contains \"{AclRule}\" or isempty(\"{AclRule}\")\r\n| where FlowStatus =~ \"{FlowStatus}\" or isempty(\"{FlowStatus}\")\r\n| where DestVm contains \"{DestinationVM}\" or \"*\" == \"{DestinationVM}\"\r\n| where FlowEncryption == \"{FlowEncryption}\" or  isempty(\"{FlowEncryption}\")\r\n| where DestRegion contains \"{DestRegion}\" or isempty(\"{DestRegion}\")\r\n| where DestSubscription == \"{FilterSubscription}\" or SrcSubscription == \"{FilterSubscription}\" or isempty(\"{FilterSubscription}\")\r\n| where MacAddress contains \"{MacAddress}\" or isempty(\"{MacAddress}\")\r\n| where L7Protocol contains \"{L7Protocol}\" or isempty(\"{L7Protocol}\")\r\n| where AclGroup contains \"{AclGroup}\" or isempty(\"{AclGroup}\")\r\n| where DestPort == \"{DestinationPort}\" or isempty(\"{DestinationPort}\")\r\n| extend DestTuples = case(isnotempty(DestPublicIps), split(tostring(DestPublicIps), \" \"),\r\n                           isnotempty(DestIp), pack_array(tostring(DestIp)),\r\n                           dynamic([]))\r\n| extend SrcTuples  = case(isnotempty(SrcPublicIps),  split(tostring(SrcPublicIps), \" \"),\r\n                           isnotempty(SrcIp), pack_array(tostring(SrcIp)),\r\n                           dynamic([]))\r\n| extend IpFanout = strcat(array_length(SrcTuples), \"x\", array_length(DestTuples))\r\n| mv-expand SrcTuple  = SrcTuples  to typeof(string)\r\n| mv-expand DestTuple = DestTuples to typeof(string)\r\n| parse DestTuple with DestinationIp \"|\" DstFlowStartedCount \"|\" DstFlowEndedCount \"|\" DstOutboundPackets \"|\" DstInboundPackets \"|\" DstOutboundBytes \"|\" DstInboundBytes\r\n| extend DestinationIp = coalesce(DestinationIp, DestTuple)\r\n| parse SrcTuple with SourceIp \"|\" SrcFlowStartedCount \"|\" SrcFlowEndedCount \"|\" SrcOutboundPackets \"|\" SrcInboundPackets \"|\" SrcOutboundBytes \"|\" SrcInboundBytes\r\n| extend SourceIp = coalesce(SourceIp, SrcTuple)\r\n| project-away SubType, FaSchemaVersion, SrcIp,  SrcPublicIps, SrcTuple, DestTuple, SrcTuples, DestTuples, DestPublicIps, DestIp\r\n| where DestinationIp == \"{DestinationIp}\" or isempty(\"{DestinationIp}\")\r\n| where SourceIp == \"{SourceIp}\" or isempty(\"{SourceIp}\")\r\n| invoke GetPopulatedColumns()\r\n| where Columns !in('TimeGenerated', 'SourceIp', 'DestinationIp', 'DestPort', 'L4Protocol', 'L7Protocol', 'FlowDirection', 'FlowStatus', 'FlowType')\r\n| sort by Columns asc",
+            "crossComponentResources": [
+              "{Workspace}"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "selectAllValue": "",
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 0
+            },
+            "timeContextFromParameter": "TimeRange",
+            "defaultValue": "value::all",
+            "queryType": 0,
+            "resourceType": "microsoft.operationalinsights/workspaces",
+            "value": [
+              "value::all"
+            ]
+          },
+          {
             "id": "68dfee27-d124-420f-bfdc-11d42865624a",
             "version": "KqlParameterItem/1.0",
             "name": "Page",
             "type": 11,
             "isRequired": true,
-            "query": "let page= datatable(page:string)[\r\n\"Page 1\",\r\n\"Page 2\"\r\n];\r\npage",
+            "query": "let page= datatable(page:string)[\r\n\"Page 1\",\r\n\"Page 2\",\r\n\"Page 3\"\r\n];\r\npage",
+            "crossComponentResources": [
+              "{Workspace}"
+            ],
             "typeSettings": {
               "additionalResourceOptions": [],
               "showDefault": false
@@ -514,7 +549,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "NTANetAnalytics\n| where SubType == 'FlowLog' and FaSchemaVersion == '3'\n| where AclRule contains \"{AclRule}\" or isempty(\"{AclRule}\")\n| where FlowStatus =~ \"{FlowStatus}\" or isempty(\"{FlowStatus}\")\n| where DestVm contains \"{DestinationVM}\" or \"*\" == \"{DestinationVM}\"\n| where FlowEncryption == \"{FlowEncryption}\" or  isempty(\"{FlowEncryption}\")\n| where DestRegion contains \"{DestRegion}\" or isempty(\"{DestRegion}\")\n| where DestSubscription == \"{FilterSubscription}\" or SrcSubscription == \"{FilterSubscription}\" or isempty(\"{FilterSubscription}\")\n| where MacAddress contains \"{MacAddress}\" or isempty(\"{MacAddress}\")\n| where L7Protocol contains \"{L7Protocol}\" or isempty(\"{L7Protocol}\")\n| where AclGroup contains \"{AclGroup}\" or isempty(\"{AclGroup}\")\n| where DestPort == \"{DestinationPort}\" or isempty(\"{DestinationPort}\")\n| extend DestTuples = case(isnotempty(DestPublicIps), split(tostring(DestPublicIps), \" \"),\n                           isnotempty(DestIp), pack_array(tostring(DestIp)),\n                           dynamic([]))\n| extend SrcTuples  = case(isnotempty(SrcPublicIps),  split(tostring(SrcPublicIps), \" \"),\n                           isnotempty(SrcIp), pack_array(tostring(SrcIp)),\n                           dynamic([]))\n| extend IpFanout = strcat(array_length(SrcTuples), \"x\", array_length(DestTuples))\n| mv-expand SrcTuple  = SrcTuples  to typeof(string)\n| mv-expand DestTuple = DestTuples to typeof(string)\n| parse DestTuple with DestinationIp \"|\" DstFlowStartedCount \"|\" DstFlowEndedCount \"|\" DstOutboundPackets \"|\" DstInboundPackets \"|\" DstOutboundBytes \"|\" DstInboundBytes\n| extend DestinationIp = coalesce(DestinationIp, DestTuple)\n| parse SrcTuple with SourceIp \"|\" SrcFlowStartedCount \"|\" SrcFlowEndedCount \"|\" SrcOutboundPackets \"|\" SrcInboundPackets \"|\" SrcOutboundBytes \"|\" SrcInboundBytes\n| extend SourceIp = coalesce(SourceIp, SrcTuple)\n| project-away SubType, FaSchemaVersion, SrcIp,  SrcPublicIps, SrcTuple, DestTuple, SrcTuples, DestTuples, DestPublicIps, DestIp\n| where DestinationIp == \"{DestinationIp}\" or isempty(\"{DestinationIp}\")\n| where SourceIp == \"{SourceIp}\" or isempty(\"{SourceIp}\")\n| extend Details = \"View Details\"\n| project TimeGenerated, SourceIp, DestinationIp, DestPort, L4Protocol, FlowDirection, FlowStatus, FlowType, TenantId, TimeProcessed, FlowIntervalStartTime, FlowIntervalEndTime, FlowStartTime, FlowEndTime, MacAddress, TargetResourceId, FlowLogResourceId, SrcSubscription, DestSubscription, SrcRegion, DestRegion, SrcNic, DestNic, SrcVm, DestVm, SrcSubnet, Country, FlowEncryption, AllowedInFlows, DeniedInFlows, AllowedOutFlows,DeniedOutFlows, PacketsDestToSrc, PacketsSrcToDest, BytesDestToSrc, BytesSrcToDest, CompletedFlows, AclGroup, AclRule, L7Protocol, Details\n| project-reorder TimeGenerated, SourceIp, DestinationIp, DestPort, L4Protocol, L7Protocol, FlowDirection, FlowStatus, FlowType, Details\n",
+              "query": "NTANetAnalytics\n| where SubType == 'FlowLog' and FaSchemaVersion == '3'\n| where AclRule contains \"{AclRule}\" or isempty(\"{AclRule}\")\n| where FlowStatus =~ \"{FlowStatus}\" or isempty(\"{FlowStatus}\")\n| where DestVm contains \"{DestinationVM}\" or \"*\" == \"{DestinationVM}\"\n| where FlowEncryption == \"{FlowEncryption}\" or  isempty(\"{FlowEncryption}\")\n| where DestRegion contains \"{DestRegion}\" or isempty(\"{DestRegion}\")\n| where DestSubscription == \"{FilterSubscription}\" or SrcSubscription == \"{FilterSubscription}\" or isempty(\"{FilterSubscription}\")\n| where MacAddress contains \"{MacAddress}\" or isempty(\"{MacAddress}\")\n| where L7Protocol contains \"{L7Protocol}\" or isempty(\"{L7Protocol}\")\n| where AclGroup contains \"{AclGroup}\" or isempty(\"{AclGroup}\")\n| where DestPort == \"{DestinationPort}\" or isempty(\"{DestinationPort}\")\n| extend DestTuples = case(isnotempty(DestPublicIps), split(tostring(DestPublicIps), \" \"),\n                           isnotempty(DestIp), pack_array(tostring(DestIp)),\n                           dynamic([]))\n| extend SrcTuples  = case(isnotempty(SrcPublicIps),  split(tostring(SrcPublicIps), \" \"),\n                           isnotempty(SrcIp), pack_array(tostring(SrcIp)),\n                           dynamic([]))\n| extend IpFanout = strcat(array_length(SrcTuples), \"x\", array_length(DestTuples))\n| mv-expand SrcTuple  = SrcTuples  to typeof(string)\n| mv-expand DestTuple = DestTuples to typeof(string)\n| parse DestTuple with DestinationIp \"|\" DstFlowStartedCount \"|\" DstFlowEndedCount \"|\" DstOutboundPackets \"|\" DstInboundPackets \"|\" DstOutboundBytes \"|\" DstInboundBytes\n| extend DestinationIp = coalesce(DestinationIp, DestTuple)\n| parse SrcTuple with SourceIp \"|\" SrcFlowStartedCount \"|\" SrcFlowEndedCount \"|\" SrcOutboundPackets \"|\" SrcInboundPackets \"|\" SrcOutboundBytes \"|\" SrcInboundBytes\n| extend SourceIp = coalesce(SourceIp, SrcTuple)\n| project-away SubType, FaSchemaVersion, SrcIp,  SrcPublicIps, SrcTuple, DestTuple, SrcTuples, DestTuples, DestPublicIps, DestIp\n| where DestinationIp == \"{DestinationIp}\" or isempty(\"{DestinationIp}\")\n| where SourceIp == \"{SourceIp}\" or isempty(\"{SourceIp}\")\n| extend Details = \"View Details\"\n// | project TimeGenerated, SourceIp, DestinationIp, DestPort, L4Protocol, FlowDirection, FlowStatus, FlowType, TenantId, TimeProcessed, FlowIntervalStartTime, FlowIntervalEndTime, FlowStartTime, FlowEndTime, MacAddress, TargetResourceId, FlowLogResourceId, SrcSubscription, DestSubscription, SrcRegion, DestRegion, SrcNic, DestNic, SrcVm, DestVm, SrcSubnet, Country, FlowEncryption, AllowedInFlows, DeniedInFlows, AllowedOutFlows,DeniedOutFlows, PacketsDestToSrc, PacketsSrcToDest, BytesDestToSrc, BytesSrcToDest, CompletedFlows, AclGroup, AclRule, L7Protocol, Details\n| project TimeGenerated, SourceIp, DestinationIp, DestPort, L4Protocol, L7Protocol, FlowDirection, FlowStatus, FlowType, Details, {ColumnsToShow}\n| project-reorder TimeGenerated, SourceIp, DestinationIp, DestPort, L4Protocol, L7Protocol, FlowDirection, FlowStatus, FlowType, Details\n",
               "size": 0,
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
@@ -607,23 +642,99 @@
                     }
                   },
                   {
-                    "columnMatch": "TenantId",
+                    "columnMatch": "AclGroup",
                     "formatter": 5
                   },
                   {
-                    "columnMatch": "TimeProcessed",
+                    "columnMatch": "AclRule",
                     "formatter": 5
                   },
                   {
-                    "columnMatch": "FlowIntervalStartTime",
+                    "columnMatch": "AllowedInFlows",
                     "formatter": 5
                   },
                   {
-                    "columnMatch": "FlowIntervalEndTime",
+                    "columnMatch": "AllowedOutFlows",
                     "formatter": 5
                   },
                   {
-                    "columnMatch": "FlowStartTime",
+                    "columnMatch": "AzureRegion",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "BytesDestToSrc",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "BytesSrcToDest",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "CompletedFlows",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "Country",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "DeniedInFlows",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "DeniedOutFlows",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "DestNic",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "DestRegion",
+                    "formatter": 17
+                  },
+                  {
+                    "columnMatch": "DestServiceTags",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "DestSubnet",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "DestSubscription",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "DestVm",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "DstFlowEndedCount",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "DstFlowStartedCount",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "DstInboundBytes",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "DstInboundPackets",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "DstOutboundBytes",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "DstOutboundPackets",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "FlowEncryption",
                     "formatter": 5
                   },
                   {
@@ -631,7 +742,23 @@
                     "formatter": 5
                   },
                   {
-                    "columnMatch": "SrcPorts",
+                    "columnMatch": "FlowIntervalEndTime",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "FlowIntervalStartTime",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "FlowLogResourceId",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "FlowStartTime",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "IpFanout",
                     "formatter": 5
                   },
                   {
@@ -639,19 +766,63 @@
                     "formatter": 5
                   },
                   {
-                    "columnMatch": "NsgList",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "NsgRule",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "NsgRuleType",
-                    "formatter": 5
-                  },
-                  {
                     "columnMatch": "MacAddress",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "PacketsDestToSrc",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "PacketsSrcToDest",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "SrcFlowEndedCount",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "SrcFlowStartedCount",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "SrcInboundBytes",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "SrcInboundPackets",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "SrcNic",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "SrcOutboundBytes",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "SrcOutboundPackets",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "SrcRegion",
+                    "formatter": 17
+                  },
+                  {
+                    "columnMatch": "SrcServiceTags",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "SrcSubnet",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "SrcSubscription",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "SrcVm",
                     "formatter": 5
                   },
                   {
@@ -667,47 +838,31 @@
                     "formatter": 5
                   },
                   {
-                    "columnMatch": "FlowLogResourceId",
+                    "columnMatch": "TenantId",
                     "formatter": 5
                   },
                   {
-                    "columnMatch": "SrcSubscription",
+                    "columnMatch": "TimeProcessed",
                     "formatter": 5
                   },
                   {
-                    "columnMatch": "DestSubscription",
+                    "columnMatch": "Type",
                     "formatter": 5
                   },
                   {
-                    "columnMatch": "SrcRegion",
-                    "formatter": 17
-                  },
-                  {
-                    "columnMatch": "DestRegion",
-                    "formatter": 17
-                  },
-                  {
-                    "columnMatch": "SrcNic",
+                    "columnMatch": "SrcPorts",
                     "formatter": 5
                   },
                   {
-                    "columnMatch": "DestNic",
+                    "columnMatch": "NsgList",
                     "formatter": 5
                   },
                   {
-                    "columnMatch": "SrcVm",
+                    "columnMatch": "NsgRule",
                     "formatter": 5
                   },
                   {
-                    "columnMatch": "DestVm",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "SrcSubnet",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "DestSubnet",
+                    "columnMatch": "NsgRuleType",
                     "formatter": 5
                   },
                   {
@@ -756,62 +911,6 @@
                   },
                   {
                     "columnMatch": "ConnectingVnets",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "Country",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "AzureRegion",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "FlowEncryption",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "AllowedInFlows",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "DeniedInFlows",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "AllowedOutFlows",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "DeniedOutFlows",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "PacketsDestToSrc",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "PacketsSrcToDest",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "BytesDestToSrc",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "BytesSrcToDest",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "CompletedFlows",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "AclGroup",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "AclRule",
                     "formatter": 5
                   },
                   {
@@ -887,14 +986,6 @@
                     "formatter": 5
                   },
                   {
-                    "columnMatch": "SrcServiceTags",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "DestServiceTags",
-                    "formatter": 5
-                  },
-                  {
                     "columnMatch": "LogResourceId",
                     "formatter": 5
                   },
@@ -916,58 +1007,6 @@
                   },
                   {
                     "columnMatch": "SourceSystem",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "Type",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "IpFanout",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "DstFlowStartedCount",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "DstFlowEndedCount",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "DstOutboundPackets",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "DstInboundPackets",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "DstOutboundBytes",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "DstInboundBytes",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "SrcFlowStartedCount",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "SrcFlowEndedCount",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "SrcOutboundPackets",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "SrcInboundPackets",
-                    "formatter": 5
-                  },
-                  {
-                    "columnMatch": "SrcOutboundBytes",
                     "formatter": 5
                   },
                   {
@@ -1088,7 +1127,7 @@
                   "timeContextFromParameter": "TimeRange",
                   "queryType": 0,
                   "resourceType": "microsoft.operationalinsights/workspaces",
-                  "value": "DestinationIp"
+                  "value": "AclRule"
                 },
                 {
                   "id": "3ec77958-1951-4f5c-ba82-41b68693a5cf",
@@ -1370,6 +1409,37 @@
         "value": "Page 2"
       },
       "name": "Group2"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Page 3",
+        "items": [
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "",
+              "showQuery": true,
+              "size": 0,
+              "timeContext": {
+                "durationMs": 86400000
+              },
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "name": "query - 0"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Page",
+        "comparison": "isEqualTo",
+        "value": "Page 3"
+      },
+      "name": "Page3"
     }
   ],
   "fallbackResourceIds": [
