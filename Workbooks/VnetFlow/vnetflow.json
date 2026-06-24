@@ -5,6 +5,9 @@
       "type": 9,
       "content": {
         "version": "KqlParameterItem/1.0",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
         "parameters": [
           {
             "id": "0e0a7d78-d465-4cd7-a80a-0ac71b9c969b",
@@ -67,11 +70,38 @@
             }
           },
           {
+            "id": "a11a279b-8c56-4a43-8ec8-b9d4197eb84c",
+            "version": "KqlParameterItem/1.0",
+            "name": "Subscription",
+            "type": 6,
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "includeAll": true
+            },
+            "timeContext": {
+              "durationMs": 0
+            },
+            "timeContextFromParameter": "TimeRange",
+            "value": [
+              "value::all"
+            ]
+          },
+          {
             "id": "f6cb5c01-4713-47e7-87c5-88ee4e615275",
             "version": "KqlParameterItem/1.0",
             "name": "Workspace",
             "type": 5,
             "isRequired": true,
+            "query": "where type =~ 'microsoft.operationalinsights/workspaces'\r\n| project id, name\r\n| order by name desc",
+            "crossComponentResources": [
+              "{Subscription}"
+            ],
             "typeSettings": {
               "resourceTypeFilter": {
                 "microsoft.operationalinsights/workspaces": true
@@ -79,7 +109,9 @@
               "additionalResourceOptions": [],
               "showDefault": false
             },
-            "value": "/subscriptions/1b1b9237-0464-457a-8088-9e4ea1eb2e09/resourcegroups/sentineldl/providers/microsoft.operationalinsights/workspaces/sentineld"
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": "/subscriptions/1b1b9237-0464-457a-8088-9e4ea1eb2e09/resourceGroups/sentineldl/providers/Microsoft.OperationalInsights/workspaces/sentineld"
           },
           {
             "id": "f679fdce-9e96-4644-9a6d-2d78d7cd431e",
@@ -1371,7 +1403,7 @@
             "content": {
               "version": "KqlItem/1.0",
               "query": "// DestPublicIps/SrcPublicIps are space-separated pipe-delimited tuples:\n//   IP|flowsStarted|flowsTerminated|packetsSrcToDest|packetsDestToSrc|bytesSrcToDest|bytesDestToSrc\n// Strategy: split on space → mv-expand one row per IP → parse 7 fields → geo_info → aggregate by City\nlet Base = materialize(\n    NTANetAnalytics\n    | where SubType == \"FlowLog\" and FaSchemaVersion == \"3\"\n    | where TimeGenerated between ({TimeRange:start} .. {TimeRange:end}));\nlet Expanded =\n    Base\n    // Select the tuple array based on MapFilter; fall back to DestPublicIps for Country/AzureRegion\n    | extend TupleArray = case(\n        \"{MapFilter}\" == \"DestinationIp\" and isnotempty(DestPublicIps), split(tostring(DestPublicIps), \" \"),\n        \"{MapFilter}\" == \"DestinationIp\" and isnotempty(DestIp),        pack_array(tostring(DestIp)),\n        \"{MapFilter}\" == \"SourceIp\"      and isnotempty(SrcPublicIps),  split(tostring(SrcPublicIps), \" \"),\n        \"{MapFilter}\" == \"SourceIp\"      and isnotempty(SrcIp),         pack_array(tostring(SrcIp)),\n        isnotempty(DestPublicIps), split(tostring(DestPublicIps), \" \"),  // Country/AzureRegion fallback\n        dynamic([])\n    )\n    // One row per space-separated tuple entry\n    | mv-expand TupleEntry = TupleArray to typeof(string)\n    | where isnotempty(TupleEntry)\n    // Parse all 7 pipe-delimited fields from each tuple\n    | extend Fields          = split(TupleEntry, \"|\")\n    | extend CandidateIp     = tostring(Fields[0])\n    | extend FlowsStarted    = tolong(coalesce(Fields[1], \"0\"))\n    | extend FlowsTerminated = tolong(coalesce(Fields[2], \"0\"))\n    | extend PktsSrcToDest   = tolong(coalesce(Fields[3], \"0\"))\n    | extend PktsDestToSrc   = tolong(coalesce(Fields[4], \"0\"))\n    | extend BytesSrcToDest  = tolong(coalesce(Fields[5], \"0\"))\n    | extend BytesDestToSrc  = tolong(coalesce(Fields[6], \"0\"))\n    | where isnotempty(CandidateIp)\n    | where not(ipv4_is_private(CandidateIp));\nExpanded\n| extend Location  = geo_info_from_ip_address(CandidateIp)\n| extend Latitude  = todouble(Location.latitude)\n| extend Longitude = todouble(Location.longitude)\n| extend City      = iff(isempty(tostring(Location.city)), \"Unknown City\", tostring(Location.city))\n// Sum real per-tuple traffic metrics; aggregate to one row per city for the map\n| summarize\n    FlowsStarted     = sum(FlowsStarted),\n    FlowsTerminated  = sum(FlowsTerminated),\n    PacketsSrcToDest = sum(PktsSrcToDest),\n    PacketsDestToSrc = sum(PktsDestToSrc),\n    BytesSrcToDest   = sum(BytesSrcToDest),\n    BytesDestToSrc   = sum(BytesDestToSrc),\n    UniqueIpCount    = dcount(CandidateIp),\n    Latitude         = avg(Latitude),\n    Longitude        = avg(Longitude)\n  by City\n| extend TotalFlows   = FlowsStarted + FlowsTerminated\n| extend TotalBytes   = BytesSrcToDest + BytesDestToSrc\n| extend TotalPackets = PacketsSrcToDest + PacketsDestToSrc\n| project City, Latitude, Longitude, UniqueIpCount, TotalFlows, TotalBytes, TotalPackets,\n          FlowsStarted, FlowsTerminated, PacketsSrcToDest, PacketsDestToSrc, BytesSrcToDest, BytesDestToSrc\n| sort by TotalFlows desc",
-              "size": 2,
+              "size": 3,
               "title": "Count of {MapFilter} by City",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
@@ -1408,7 +1440,13 @@
         "comparison": "isEqualTo",
         "value": "Page 2"
       },
-      "name": "Group2"
+      "customWidth": "100",
+      "name": "Group2",
+      "styleSettings": {
+        "margin": "0",
+        "padding": "0",
+        "maxWidth": "100"
+      }
     },
     {
       "type": 12,
@@ -1443,7 +1481,7 @@
     }
   ],
   "fallbackResourceIds": [
-    ""
+    "/subscriptions/1b1b9237-0464-457a-8088-9e4ea1eb2e09/resourcegroups/sentineldl/providers/microsoft.operationalinsights/workspaces/sentineld"
   ],
   "fromTemplateId": "sentinel-UserWorkbook",
   "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
