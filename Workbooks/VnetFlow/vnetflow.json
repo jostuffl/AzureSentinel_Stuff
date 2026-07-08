@@ -349,38 +349,6 @@
             "value": null
           },
           {
-            "id": "64ef0972-89ee-4892-8804-39f10bf33e62",
-            "version": "KqlParameterItem/1.0",
-            "name": "ColumnsToShow",
-            "label": "Details Selector",
-            "type": 2,
-            "isRequired": true,
-            "multiSelect": true,
-            "quote": "",
-            "delimiter": ",",
-            "query": "NTANetAnalytics\r\n| where SubType == 'FlowLog' and FaSchemaVersion == '3'\r\n| where AclRule contains \"{AclRule}\" or isempty(\"{AclRule}\")\r\n| where FlowStatus =~ \"{FlowStatus}\" or isempty(\"{FlowStatus}\")\r\n| where DestVm contains \"{DestinationVM}\" or \"*\" == \"{DestinationVM}\"\r\n| where FlowEncryption == \"{FlowEncryption}\" or  isempty(\"{FlowEncryption}\")\r\n| where DestRegion contains \"{DestRegion}\" or isempty(\"{DestRegion}\")\r\n| where DestSubscription == \"{FilterSubscription}\" or SrcSubscription == \"{FilterSubscription}\" or isempty(\"{FilterSubscription}\")\r\n| where MacAddress contains \"{MacAddress}\" or isempty(\"{MacAddress}\")\r\n| where L7Protocol contains \"{L7Protocol}\" or isempty(\"{L7Protocol}\")\r\n| where AclGroup contains \"{AclGroup}\" or isempty(\"{AclGroup}\")\r\n| where DestPort == \"{DestinationPort}\" or isempty(\"{DestinationPort}\")\r\n| extend DestTuples = case(isnotempty(DestPublicIps), split(tostring(DestPublicIps), \" \"),\r\n                           isnotempty(DestIp), pack_array(tostring(DestIp)),\r\n                           dynamic([]))\r\n| extend SrcTuples  = case(isnotempty(SrcPublicIps),  split(tostring(SrcPublicIps), \" \"),\r\n                           isnotempty(SrcIp), pack_array(tostring(SrcIp)),\r\n                           dynamic([]))\r\n| extend IpFanout = strcat(array_length(SrcTuples), \"x\", array_length(DestTuples))\r\n| mv-expand SrcTuple  = SrcTuples  to typeof(string)\r\n| mv-expand DestTuple = DestTuples to typeof(string)\r\n| parse DestTuple with DestinationIp \"|\" DstFlowStartedCount \"|\" DstFlowEndedCount \"|\" DstOutboundPackets \"|\" DstInboundPackets \"|\" DstOutboundBytes \"|\" DstInboundBytes\r\n| extend DestinationIp = coalesce(DestinationIp, DestTuple)\r\n| parse SrcTuple with SourceIp \"|\" SrcFlowStartedCount \"|\" SrcFlowEndedCount \"|\" SrcOutboundPackets \"|\" SrcInboundPackets \"|\" SrcOutboundBytes \"|\" SrcInboundBytes\r\n| extend SourceIp = coalesce(SourceIp, SrcTuple)\r\n| project-away SubType, FaSchemaVersion, SrcIp,  SrcPublicIps, SrcTuple, DestTuple, SrcTuples, DestTuples, DestPublicIps, DestIp\r\n| where DestinationIp == \"{DestinationIp}\" or isempty(\"{DestinationIp}\")\r\n| where SourceIp == \"{SourceIp}\" or isempty(\"{SourceIp}\")\r\n| invoke GetPopulatedColumns()\r\n| where Columns !in('TimeGenerated', 'SourceIp', 'DestinationIp', 'DestPort', 'L4Protocol', 'L7Protocol', 'FlowDirection', 'FlowStatus', 'FlowType')\r\n| sort by Columns asc",
-            "crossComponentResources": [
-              "{Workspace}"
-            ],
-            "typeSettings": {
-              "additionalResourceOptions": [
-                "value::all"
-              ],
-              "selectAllValue": "",
-              "showDefault": false
-            },
-            "timeContext": {
-              "durationMs": 0
-            },
-            "timeContextFromParameter": "TimeRange",
-            "defaultValue": "value::all",
-            "queryType": 0,
-            "resourceType": "microsoft.operationalinsights/workspaces",
-            "value": [
-              "value::all"
-            ]
-          },
-          {
             "id": "68dfee27-d124-420f-bfdc-11d42865624a",
             "version": "KqlParameterItem/1.0",
             "name": "Page",
@@ -422,9 +390,6 @@
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "crossComponentResources": [
-                "{Workspace}"
-              ],
               "visualization": "tiles",
               "gridSettings": {
                 "formatters": [
@@ -558,9 +523,6 @@
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "crossComponentResources": [
-                "{Workspace}"
-              ],
               "visualization": "unstackedbar",
               "chartSettings": {
                 "seriesLabelSettings": [
@@ -581,7 +543,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "NTANetAnalytics\n| where SubType == 'FlowLog' and FaSchemaVersion == '3'\n| where AclRule contains \"{AclRule}\" or isempty(\"{AclRule}\")\n| where FlowStatus =~ \"{FlowStatus}\" or isempty(\"{FlowStatus}\")\n| where DestVm contains \"{DestinationVM}\" or \"*\" == \"{DestinationVM}\"\n| where FlowEncryption == \"{FlowEncryption}\" or  isempty(\"{FlowEncryption}\")\n| where DestRegion contains \"{DestRegion}\" or isempty(\"{DestRegion}\")\n| where DestSubscription == \"{FilterSubscription}\" or SrcSubscription == \"{FilterSubscription}\" or isempty(\"{FilterSubscription}\")\n| where MacAddress contains \"{MacAddress}\" or isempty(\"{MacAddress}\")\n| where L7Protocol contains \"{L7Protocol}\" or isempty(\"{L7Protocol}\")\n| where AclGroup contains \"{AclGroup}\" or isempty(\"{AclGroup}\")\n| where DestPort == \"{DestinationPort}\" or isempty(\"{DestinationPort}\")\n| extend DestTuples = case(isnotempty(DestPublicIps), split(tostring(DestPublicIps), \" \"),\n                           isnotempty(DestIp), pack_array(tostring(DestIp)),\n                           dynamic([]))\n| extend SrcTuples  = case(isnotempty(SrcPublicIps),  split(tostring(SrcPublicIps), \" \"),\n                           isnotempty(SrcIp), pack_array(tostring(SrcIp)),\n                           dynamic([]))\n| extend IpFanout = strcat(array_length(SrcTuples), \"x\", array_length(DestTuples))\n| mv-expand SrcTuple  = SrcTuples  to typeof(string)\n| mv-expand DestTuple = DestTuples to typeof(string)\n| parse DestTuple with DestinationIp \"|\" DstFlowStartedCount \"|\" DstFlowEndedCount \"|\" DstOutboundPackets \"|\" DstInboundPackets \"|\" DstOutboundBytes \"|\" DstInboundBytes\n| extend DestinationIp = coalesce(DestinationIp, DestTuple)\n| parse SrcTuple with SourceIp \"|\" SrcFlowStartedCount \"|\" SrcFlowEndedCount \"|\" SrcOutboundPackets \"|\" SrcInboundPackets \"|\" SrcOutboundBytes \"|\" SrcInboundBytes\n| extend SourceIp = coalesce(SourceIp, SrcTuple)\n| project-away SubType, FaSchemaVersion, SrcIp,  SrcPublicIps, SrcTuple, DestTuple, SrcTuples, DestTuples, DestPublicIps, DestIp\n| where DestinationIp == \"{DestinationIp}\" or isempty(\"{DestinationIp}\")\n| where SourceIp == \"{SourceIp}\" or isempty(\"{SourceIp}\")\n| extend Details = \"View Details\"\n// | project TimeGenerated, SourceIp, DestinationIp, DestPort, L4Protocol, FlowDirection, FlowStatus, FlowType, TenantId, TimeProcessed, FlowIntervalStartTime, FlowIntervalEndTime, FlowStartTime, FlowEndTime, MacAddress, TargetResourceId, FlowLogResourceId, SrcSubscription, DestSubscription, SrcRegion, DestRegion, SrcNic, DestNic, SrcVm, DestVm, SrcSubnet, Country, FlowEncryption, AllowedInFlows, DeniedInFlows, AllowedOutFlows,DeniedOutFlows, PacketsDestToSrc, PacketsSrcToDest, BytesDestToSrc, BytesSrcToDest, CompletedFlows, AclGroup, AclRule, L7Protocol, Details\n| project TimeGenerated, SourceIp, DestinationIp, DestPort, L4Protocol, L7Protocol, FlowDirection, FlowStatus, FlowType, Details, {ColumnsToShow}\n| project-reorder TimeGenerated, SourceIp, DestinationIp, DestPort, L4Protocol, L7Protocol, FlowDirection, FlowStatus, FlowType, Details\n",
+              "query": "NTANetAnalytics\n| where SubType == 'FlowLog' and FaSchemaVersion == '3'\n| where AclRule contains \"{AclRule}\" or isempty(\"{AclRule}\")\n| where FlowStatus =~ \"{FlowStatus}\" or isempty(\"{FlowStatus}\")\n| where DestVm contains \"{DestinationVM}\" or \"*\" == \"{DestinationVM}\"\n| where FlowEncryption == \"{FlowEncryption}\" or  isempty(\"{FlowEncryption}\")\n| where DestRegion contains \"{DestRegion}\" or isempty(\"{DestRegion}\")\n| where DestSubscription == \"{FilterSubscription}\" or SrcSubscription == \"{FilterSubscription}\" or isempty(\"{FilterSubscription}\")\n| where MacAddress contains \"{MacAddress}\" or isempty(\"{MacAddress}\")\n| where L7Protocol contains \"{L7Protocol}\" or isempty(\"{L7Protocol}\")\n| where AclGroup contains \"{AclGroup}\" or isempty(\"{AclGroup}\")\n| where DestPort == \"{DestinationPort}\" or isempty(\"{DestinationPort}\")\n| extend DestTuples = case(isnotempty(DestPublicIps), split(tostring(DestPublicIps), \" \"),\n                           isnotempty(DestIp), pack_array(tostring(DestIp)),\n                           dynamic([]))\n| extend SrcTuples  = case(isnotempty(SrcPublicIps),  split(tostring(SrcPublicIps), \" \"),\n                           isnotempty(SrcIp), pack_array(tostring(SrcIp)),\n                           dynamic([]))\n| extend IpFanout = strcat(array_length(SrcTuples), \"x\", array_length(DestTuples))\n| mv-expand SrcTuple  = SrcTuples  to typeof(string)\n| mv-expand DestTuple = DestTuples to typeof(string)\n| parse DestTuple with DestinationIp \"|\" DstFlowStartedCount \"|\" DstFlowEndedCount \"|\" DstOutboundPackets \"|\" DstInboundPackets \"|\" DstOutboundBytes \"|\" DstInboundBytes\n| extend DestinationIp = coalesce(DestinationIp, DestTuple)\n| parse SrcTuple with SourceIp \"|\" SrcFlowStartedCount \"|\" SrcFlowEndedCount \"|\" SrcOutboundPackets \"|\" SrcInboundPackets \"|\" SrcOutboundBytes \"|\" SrcInboundBytes\n| extend SourceIp = coalesce(SourceIp, SrcTuple)\n| project-away SubType, FaSchemaVersion, SrcIp,  SrcPublicIps, SrcTuple, DestTuple, SrcTuples, DestTuples, DestPublicIps, DestIp\n| where DestinationIp == \"{DestinationIp}\" or isempty(\"{DestinationIp}\")\n| where SourceIp == \"{SourceIp}\" or isempty(\"{SourceIp}\")\n| extend Details = \"View Details\"\n// | project TimeGenerated, SourceIp, DestinationIp, DestPort, L4Protocol, FlowDirection, FlowStatus, FlowType, TenantId, TimeProcessed, FlowIntervalStartTime, FlowIntervalEndTime, FlowStartTime, FlowEndTime, MacAddress, TargetResourceId, FlowLogResourceId, SrcSubscription, DestSubscription, SrcRegion, DestRegion, SrcNic, DestNic, SrcVm, DestVm, SrcSubnet, Country, FlowEncryption, AllowedInFlows, DeniedInFlows, AllowedOutFlows,DeniedOutFlows, PacketsDestToSrc, PacketsSrcToDest, BytesDestToSrc, BytesSrcToDest, CompletedFlows, AclGroup, AclRule, L7Protocol, Details\n//| project TimeGenerated, SourceIp, DestinationIp, DestPort, L4Protocol, L7Protocol, FlowDirection, FlowStatus, FlowType, Details\n| project-reorder TimeGenerated, SourceIp, DestinationIp, DestPort, L4Protocol, L7Protocol, FlowDirection, FlowStatus, FlowType, Details\n",
               "size": 0,
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
@@ -1069,9 +1031,6 @@
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "crossComponentResources": [
-                "{Workspace}"
-              ],
               "visualization": "timechart"
             },
             "customWidth": "50",
@@ -1087,9 +1046,6 @@
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "crossComponentResources": [
-                "{Workspace}"
-              ],
               "visualization": "timechart"
             },
             "customWidth": "50",
@@ -1105,9 +1061,6 @@
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "crossComponentResources": [
-                "{Workspace}"
-              ],
               "visualization": "timechart"
             },
             "customWidth": "50",
