@@ -1,0 +1,173 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+  "handler": "Microsoft.Azure.CreateUIDef",
+  "version": "0.1.2-preview",
+  "parameters": {
+    "config": {
+      "isWizard": true,
+      "basics": {
+        "description": "Configure Proofpoint POD ingestion for an existing Sentinel-enabled Log Analytics workspace. The data collection endpoint and rule use the selected workspace's region.",
+        "subscription": {
+          "resourceProviders": [
+            "Microsoft.OperationalInsights",
+            "Microsoft.Insights"
+          ]
+        },
+        "resourceGroup": {
+          "allowExisting": true
+        },
+        "location": {
+          "visible": false
+        }
+      }
+    },
+    "basics": [
+      {
+        "name": "getLAWorkspace",
+        "type": "Microsoft.Solutions.ArmApiControl",
+        "condition": "[greater(length(resourceGroup().name), 0)]",
+        "request": {
+          "method": "GET",
+          "path": "[concat(subscription().id, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.OperationalInsights/workspaces?api-version=2022-10-01')]"
+        }
+      },
+      {
+        "name": "workspace",
+        "type": "Microsoft.Common.DropDown",
+        "label": "Workspace",
+        "placeholder": "Select an existing workspace",
+        "toolTip": "Select a Sentinel-enabled workspace in the selected resource group. Its region is used automatically.",
+        "filter": true,
+        "constraints": {
+          "allowedValues": "[map(basics('getLAWorkspace').value, (item) => parse(concat('{\"label\":\"', item.name, '\",\"value\":\"', item.name, '\"}')))]",
+          "required": true
+        },
+        "visible": true
+      }
+    ],
+    "steps": [
+      {
+        "name": "ingestion",
+        "label": "Ingestion",
+        "elements": [
+          {
+            "name": "dataCollectionEndpointName",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Data collection endpoint name",
+            "defaultValue": "dce-proofpoint-pod",
+            "toolTip": "Name of the data collection endpoint.",
+            "constraints": {
+              "required": true,
+              "regex": "^[A-Za-z0-9][A-Za-z0-9-]{0,63}$",
+              "validationMessage": "Use 1 to 64 letters, numbers, or hyphens, starting with a letter or number."
+            }
+          },
+          {
+            "name": "dataCollectionRuleName",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Data collection rule name",
+            "defaultValue": "dcr-proofpoint-pod",
+            "toolTip": "Name of the data collection rule.",
+            "constraints": {
+              "required": true,
+              "regex": "^[A-Za-z0-9][A-Za-z0-9-]{0,63}$",
+              "validationMessage": "Use 1 to 64 letters, numbers, or hyphens, starting with a letter or number."
+            }
+          },
+          {
+            "name": "publicNetworkAccess",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Public network access",
+            "defaultValue": "Disabled",
+            "toolTip": "Disabled requires Azure Monitor Private Link Scope, private endpoints, DNS, and routing to be configured separately. Enabled permits public HTTPS ingestion.",
+            "constraints": {
+              "allowedValues": [
+                { "label": "Disabled", "value": "Disabled" },
+                { "label": "Enabled", "value": "Enabled" }
+              ],
+              "required": true
+            }
+          }
+        ]
+      },
+      {
+        "name": "schemas",
+        "label": "Tables and fields",
+        "elements": [
+          {
+            "name": "schemaNotice",
+            "type": "Microsoft.Common.InfoBox",
+            "options": {
+              "icon": "Info",
+              "text": "Both streams use source-only pass-through. Select optional fields only when the sender supplies them and the destination table supports them. Table creation must remain unchecked for existing tables; field selections do not add or remove columns in existing tables. TimeGenerated is always included."
+            }
+          },
+          {
+            "name": "createMessageTable",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Create ProofpointPODMessage_CL (only if absent)",
+            "defaultValue": false
+          },
+          {
+            "name": "includeMessageEventTime",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Include eventTime in the message stream and new message table",
+            "defaultValue": false
+          },
+          {
+            "name": "includeMessagePps",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Include pps in the message stream and new message table",
+            "defaultValue": false
+          },
+          {
+            "name": "createMailLogTable",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Create ProofpointPODMailLog_CL (only if absent)",
+            "defaultValue": false
+          },
+          {
+            "name": "includeMailLogEventTime",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Include eventTime in the mail-log stream and new mail-log table",
+            "defaultValue": false
+          },
+          {
+            "name": "includeMailLogPps",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Include pps in the mail-log stream and new mail-log table",
+            "defaultValue": false
+          }
+        ]
+      },
+      {
+        "name": "tagging",
+        "label": "Tags",
+        "elements": [
+          {
+            "name": "resourceTags",
+            "type": "Microsoft.Common.TagsByResource",
+            "resources": [
+              "Microsoft.Insights/dataCollectionEndpoints",
+              "Microsoft.Insights/dataCollectionRules"
+            ]
+          }
+        ]
+      }
+    ],
+    "outputs": {
+      "workspaceName": "[basics('workspace')]",
+      "workspace-location": "[first(map(filter(basics('getLAWorkspace').value, (item) => equals(item.name, basics('workspace'))), (item) => item.location))]",
+      "dataCollectionEndpointName": "[steps('ingestion').dataCollectionEndpointName]",
+      "dataCollectionRuleName": "[steps('ingestion').dataCollectionRuleName]",
+      "publicNetworkAccess": "[steps('ingestion').publicNetworkAccess]",
+      "createMessageTable": "[steps('schemas').createMessageTable]",
+      "createMailLogTable": "[steps('schemas').createMailLogTable]",
+      "includeMessageEventTime": "[steps('schemas').includeMessageEventTime]",
+      "includeMailLogEventTime": "[steps('schemas').includeMailLogEventTime]",
+      "includeMessagePps": "[steps('schemas').includeMessagePps]",
+      "includeMailLogPps": "[steps('schemas').includeMailLogPps]",
+      "tagsByResource": "[steps('tagging').resourceTags]"
+    }
+  }
+}
