@@ -1,0 +1,204 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "description": "Proofpoint on Demand (POD) log ingestion for Microsoft Sentinel. Deploy into the resource group of the existing workspace. Creates a data collection endpoint, a data collection rule, and optionally the ProofpointPODMessage_CL and ProofpointPODMailLog_CL tables."
+  },
+  "parameters": {
+    "workspaceName": {
+      "type": "string",
+      "minLength": 1,
+      "metadata": { "description": "Name of the existing Sentinel-enabled Log Analytics workspace in this resource group and subscription." }
+    },
+    "workspace-location": {
+      "type": "string",
+      "minLength": 1,
+      "metadata": { "description": "Region of the selected workspace, supplied automatically by the deployment wizard." }
+    },
+    "dataCollectionEndpointName": {
+      "type": "string",
+      "defaultValue": "dce-proofpoint-pod",
+      "metadata": { "description": "Name of the new data collection endpoint." }
+    },
+    "dataCollectionRuleName": {
+      "type": "string",
+      "defaultValue": "dcr-proofpoint-pod",
+      "metadata": { "description": "Name of the new data collection rule." }
+    },
+    "createMessageTable": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": { "description": "Set to true only if ProofpointPODMessage_CL does not exist. False leaves an existing table unchanged." }
+    },
+    "createMailLogTable": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": { "description": "Set to true only if ProofpointPODMailLog_CL does not exist. False leaves an existing table unchanged." }
+    },
+    "includeMessageEventTime": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": { "description": "Include eventTime as datetime in the message stream and new message table schema. Enable only when the sender supplies this field and the destination table supports it." }
+    },
+    "includeMailLogEventTime": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": { "description": "Include eventTime as datetime in the mail-log stream and new mail-log table schema. Enable only when the sender supplies this field and the destination table supports it." }
+    },
+    "includeMessagePps": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": { "description": "Include pps as dynamic in the message stream and new message table schema. Enable only when the sender supplies this field and the destination table supports it." }
+    },
+    "includeMailLogPps": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": { "description": "Include pps as dynamic in the mail-log stream and new mail-log table schema. Enable only when the sender supplies this field and the destination table supports it." }
+    },
+    "publicNetworkAccess": {
+      "type": "string",
+      "defaultValue": "Disabled",
+      "allowedValues": ["Enabled", "Disabled"],
+      "metadata": { "description": "Enabled allows ingestion over public HTTPS. Disabled requires Azure Monitor Private Link Scope, private endpoints, DNS, and routing to be configured separately." }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {},
+      "metadata": { "description": "Tags to apply to the data collection rule and endpoint." }
+    },
+    "tagsByResource": {
+      "type": "object",
+      "defaultValue": {},
+      "metadata": { "description": "Additional tags by resource type, supplied by the deployment wizard. These override shared tags with the same name." }
+    }
+  },
+  "variables": {
+    "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
+    "dceId": "[resourceId('Microsoft.Insights/dataCollectionEndpoints', parameters('dataCollectionEndpointName'))]",
+    "dcrId": "[resourceId('Microsoft.Insights/dataCollectionRules', parameters('dataCollectionRuleName'))]",
+    "eventTimeColumn": [
+      { "name": "eventTime", "type": "datetime" }
+    ],
+    "ppsColumn": [
+      { "name": "pps", "type": "dynamic" }
+    ],
+    "messageBaseColumns": [
+      { "name": "TimeGenerated", "type": "datetime" },
+      { "name": "guid", "type": "string" },
+      { "name": "connection", "type": "dynamic" },
+      { "name": "envelope", "type": "dynamic" },
+      { "name": "msg", "type": "dynamic" },
+      { "name": "metadata", "type": "dynamic" },
+      { "name": "filter", "type": "dynamic" },
+      { "name": "msgParts", "type": "dynamic" }
+    ],
+    "mailLogBaseColumns": [
+      { "name": "TimeGenerated", "type": "datetime" },
+      { "name": "id", "type": "string" },
+      { "name": "data", "type": "string" },
+      { "name": "metadata", "type": "dynamic" },
+      { "name": "sm", "type": "dynamic" },
+      { "name": "tls", "type": "dynamic" }
+    ],
+    "messageColumns": "[concat(variables('messageBaseColumns'), if(parameters('includeMessageEventTime'), variables('eventTimeColumn'), json('[]')), if(parameters('includeMessagePps'), variables('ppsColumn'), json('[]')))]",
+    "mailLogColumns": "[concat(variables('mailLogBaseColumns'), if(parameters('includeMailLogEventTime'), variables('eventTimeColumn'), json('[]')), if(parameters('includeMailLogPps'), variables('ppsColumn'), json('[]')))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/tables",
+      "apiVersion": "2025-07-01",
+      "name": "[concat(parameters('workspaceName'), '/ProofpointPODMessage_CL')]",
+      "condition": "[parameters('createMessageTable')]",
+      "properties": {
+        "plan": "Analytics",
+        "schema": {
+          "name": "ProofpointPODMessage_CL",
+          "columns": "[variables('messageColumns')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/tables",
+      "apiVersion": "2025-07-01",
+      "name": "[concat(parameters('workspaceName'), '/ProofpointPODMailLog_CL')]",
+      "condition": "[parameters('createMailLogTable')]",
+      "properties": {
+        "plan": "Analytics",
+        "schema": {
+          "name": "ProofpointPODMailLog_CL",
+          "columns": "[variables('mailLogColumns')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Insights/dataCollectionEndpoints",
+      "apiVersion": "2024-03-11",
+      "name": "[parameters('dataCollectionEndpointName')]",
+      "location": "[parameters('workspace-location')]",
+      "tags": "[union(parameters('tags'), if(contains(parameters('tagsByResource'), 'Microsoft.Insights/dataCollectionEndpoints'), parameters('tagsByResource')['Microsoft.Insights/dataCollectionEndpoints'], json('{}')))]",
+      "properties": {
+        "description": "Data collection endpoint for Proofpoint POD log ingestion",
+        "networkAcls": { "publicNetworkAccess": "[parameters('publicNetworkAccess')]" }
+      }
+    },
+    {
+      "type": "Microsoft.Insights/dataCollectionRules",
+      "apiVersion": "2024-03-11",
+      "name": "[parameters('dataCollectionRuleName')]",
+      "location": "[parameters('workspace-location')]",
+      "tags": "[union(parameters('tags'), if(contains(parameters('tagsByResource'), 'Microsoft.Insights/dataCollectionRules'), parameters('tagsByResource')['Microsoft.Insights/dataCollectionRules'], json('{}')))]",
+      "dependsOn": [
+        "[variables('dceId')]",
+        "[resourceId('Microsoft.OperationalInsights/workspaces/tables', parameters('workspaceName'), 'ProofpointPODMessage_CL')]",
+        "[resourceId('Microsoft.OperationalInsights/workspaces/tables', parameters('workspaceName'), 'ProofpointPODMailLog_CL')]"
+      ],
+      "properties": {
+        "description": "Routes Proofpoint POD message and mail log streams to their Log Analytics tables without transformation",
+        "dataCollectionEndpointId": "[variables('dceId')]",
+        "streamDeclarations": {
+          "Custom-ProofpointPodMessage": {
+            "columns": "[variables('messageColumns')]"
+          },
+          "Custom-ProofpointPodMailLog": {
+            "columns": "[variables('mailLogColumns')]"
+          }
+        },
+        "destinations": {
+          "logAnalytics": [ { "workspaceResourceId": "[variables('workspaceId')]", "name": "proofpointWorkspace" } ]
+        },
+        "dataFlows": [
+          {
+            "streams": ["Custom-ProofpointPodMessage"],
+            "destinations": ["proofpointWorkspace"],
+            "transformKql": "source",
+            "outputStream": "Custom-ProofpointPODMessage_CL"
+          },
+          {
+            "streams": ["Custom-ProofpointPodMailLog"],
+            "destinations": ["proofpointWorkspace"],
+            "transformKql": "source",
+            "outputStream": "Custom-ProofpointPODMailLog_CL"
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "workspaceResourceId": { "type": "string", "value": "[variables('workspaceId')]" },
+    "workspaceLocation": { "type": "string", "value": "[parameters('workspace-location')]" },
+    "dcrResourceId": { "type": "string", "value": "[variables('dcrId')]" },
+    "dcrImmutableId": { "type": "string", "value": "[reference(variables('dcrId'), '2024-03-11').immutableId]" },
+    "dceResourceId": { "type": "string", "value": "[variables('dceId')]" },
+    "logsIngestionEndpoint": { "type": "string", "value": "[reference(variables('dceId'), '2024-03-11').logsIngestion.endpoint]" },
+    "messageStreamName": { "type": "string", "value": "Custom-ProofpointPodMessage" },
+    "mailLogStreamName": { "type": "string", "value": "Custom-ProofpointPodMailLog" },
+    "messageIngestionUrl": {
+      "type": "string",
+      "value": "[concat(reference(variables('dceId'), '2024-03-11').logsIngestion.endpoint, '/dataCollectionRules/', reference(variables('dcrId'), '2024-03-11').immutableId, '/streams/Custom-ProofpointPodMessage?api-version=2023-01-01')]"
+    },
+    "mailLogIngestionUrl": {
+      "type": "string",
+      "value": "[concat(reference(variables('dceId'), '2024-03-11').logsIngestion.endpoint, '/dataCollectionRules/', reference(variables('dcrId'), '2024-03-11').immutableId, '/streams/Custom-ProofpointPodMailLog?api-version=2023-01-01')]"
+    }
+  }
+}
