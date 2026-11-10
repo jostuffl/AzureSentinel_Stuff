@@ -1,0 +1,1055 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "description": "Deploys the following: Data Collection Endpoint, Data Collection Rule, and the two tables EntraAuditLogs_CL and EntraSigninLogs_CL"
+  },
+  "parameters": {
+    "workspaceResourceId": {
+      "type": "string",
+      "metadata": {
+        "description": "Required existing workspace resource ID in the selected subscription. Tables are deployed into its own resource group."
+      },
+      "minLength": 1
+    },
+    "dataCollectionEndpointName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name for a new DCE. Ignored when reusing an existing DCE."
+      },
+      "minLength": 1,
+      "defaultValue": "dce-entra-cribl"
+    },
+    "existingDataCollectionEndpointId": {
+      "type": "string",
+      "metadata": {
+        "description": "Existing DCE resource ID, or empty to create a DCE."
+      },
+      "defaultValue": ""
+    },
+    "dataCollectionRuleName": {
+      "type": "string",
+      "metadata": {
+        "description": "New DCR name. Do not use an existing DCR as it will be written over."
+      },
+      "minLength": 1,
+      "defaultValue": "dcr-entra-cribl"
+    },
+    "createSigninTable": {
+      "type": "bool",
+      "metadata": {
+        "description": "True only when EntraSigninLogs_CL is absent. False preserves its schema and retention."
+      },
+      "defaultValue": false
+    },
+    "createAuditTable": {
+      "type": "bool",
+      "metadata": {
+        "description": "True only when EntraAuditLogs_CL is absent. False preserves its schema and retention."
+      },
+      "defaultValue": false
+    },
+    "publicNetworkAccess": {
+      "type": "string",
+      "metadata": {
+        "description": "Disabled requires separately configured AMPLS, private endpoints and DNS. Enabled requires approval for public HTTPS ingestion."
+      },
+      "allowedValues": [
+        "Disabled",
+        "Enabled"
+      ],
+      "defaultValue": "Disabled"
+    },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "description": "Tags for NEW DCE/DCR resources."
+      },
+      "defaultValue": {}
+    }
+  },
+  "variables": {
+    "workspaceGroup": "[split(parameters('workspaceResourceId'), '/')[4]]",
+    "workspaceName": "[last(split(parameters('workspaceResourceId'), '/'))]",
+    "newDceId": "[resourceId('Microsoft.Insights/dataCollectionEndpoints', parameters('dataCollectionEndpointName'))]",
+    "dceId": "[if(empty(parameters('existingDataCollectionEndpointId')), variables('newDceId'), parameters('existingDataCollectionEndpointId'))]",
+    "dcrId": "[resourceId('Microsoft.Insights/dataCollectionRules', parameters('dataCollectionRuleName'))]",
+    "fixedTables": [
+      "EntraSigninLogs_CL",
+      "EntraAuditLogs_CL"
+    ]
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[concat('entra-tables-', uniqueString(deployment().name))]",
+      "resourceGroup": "[variables('workspaceGroup')]",
+      "properties": {
+        "mode": "Incremental",
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "parameters": {
+          "workspaceName": {
+            "value": "[variables('workspaceName')]"
+          },
+          "createSigninTable": {
+            "value": "[parameters('createSigninTable')]"
+          },
+          "createAuditTable": {
+            "value": "[parameters('createAuditTable')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "workspaceName": {
+              "type": "string"
+            },
+            "createSigninTable": {
+              "type": "bool"
+            },
+            "createAuditTable": {
+              "type": "bool"
+            }
+          },
+          "resources": [
+            {
+              "condition": "[parameters('createSigninTable')]",
+              "type": "Microsoft.OperationalInsights/workspaces/tables",
+              "apiVersion": "2022-10-01",
+              "name": "[concat(parameters('workspaceName'), '/EntraSigninLogs_CL')]",
+              "properties": {
+                "plan": "Analytics",
+                "schema": {
+                  "name": "EntraSigninLogs_CL",
+                  "columns": [
+                    {
+                      "name": "SourceSystem",
+                      "type": "string"
+                    },
+                    {
+                      "name": "TimeGenerated",
+                      "type": "datetime"
+                    },
+                    {
+                      "name": "ResourceId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "OperationName",
+                      "type": "string"
+                    },
+                    {
+                      "name": "OperationVersion",
+                      "type": "string"
+                    },
+                    {
+                      "name": "Category",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ResultType",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ResultSignature",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ResultDescription",
+                      "type": "string"
+                    },
+                    {
+                      "name": "DurationMs",
+                      "type": "long"
+                    },
+                    {
+                      "name": "CorrelationId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "Resource",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ResourceGroup",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ResourceProvider",
+                      "type": "string"
+                    },
+                    {
+                      "name": "Identity",
+                      "type": "string"
+                    },
+                    {
+                      "name": "Level",
+                      "type": "string"
+                    },
+                    {
+                      "name": "Location",
+                      "type": "string"
+                    },
+                    {
+                      "name": "AlternateSignInName",
+                      "type": "string"
+                    },
+                    {
+                      "name": "AppDisplayName",
+                      "type": "string"
+                    },
+                    {
+                      "name": "AppId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "AuthenticationContextClassReferences",
+                      "type": "string"
+                    },
+                    {
+                      "name": "AuthenticationDetails",
+                      "type": "string"
+                    },
+                    {
+                      "name": "AppliedEventListeners",
+                      "type": "dynamic"
+                    },
+                    {
+                      "name": "AuthenticationMethodsUsed",
+                      "type": "string"
+                    },
+                    {
+                      "name": "AuthenticationProcessingDetails",
+                      "type": "string"
+                    },
+                    {
+                      "name": "AuthenticationRequirement",
+                      "type": "string"
+                    },
+                    {
+                      "name": "AuthenticationRequirementPolicies",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ClientAppUsed",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ConditionalAccessPolicies",
+                      "type": "dynamic"
+                    },
+                    {
+                      "name": "ConditionalAccessStatus",
+                      "type": "string"
+                    },
+                    {
+                      "name": "CreatedDateTime",
+                      "type": "datetime"
+                    },
+                    {
+                      "name": "DeviceDetail",
+                      "type": "dynamic"
+                    },
+                    {
+                      "name": "IsInteractive",
+                      "type": "boolean"
+                    },
+                    {
+                      "name": "Id",
+                      "type": "string"
+                    },
+                    {
+                      "name": "IPAddress",
+                      "type": "string"
+                    },
+                    {
+                      "name": "IsRisky",
+                      "type": "boolean"
+                    },
+                    {
+                      "name": "LocationDetails",
+                      "type": "dynamic"
+                    },
+                    {
+                      "name": "MfaDetail",
+                      "type": "dynamic"
+                    },
+                    {
+                      "name": "NetworkLocationDetails",
+                      "type": "string"
+                    },
+                    {
+                      "name": "OriginalRequestId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ProcessingTimeInMilliseconds",
+                      "type": "string"
+                    },
+                    {
+                      "name": "RiskDetail",
+                      "type": "string"
+                    },
+                    {
+                      "name": "RiskEventTypes",
+                      "type": "string"
+                    },
+                    {
+                      "name": "RiskEventTypes_V2",
+                      "type": "string"
+                    },
+                    {
+                      "name": "RiskLevelAggregated",
+                      "type": "string"
+                    },
+                    {
+                      "name": "RiskLevelDuringSignIn",
+                      "type": "string"
+                    },
+                    {
+                      "name": "RiskState",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ResourceDisplayName",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ResourceIdentity",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ResourceServicePrincipalId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ServicePrincipalId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ServicePrincipalName",
+                      "type": "string"
+                    },
+                    {
+                      "name": "Status",
+                      "type": "dynamic"
+                    },
+                    {
+                      "name": "TokenIssuerName",
+                      "type": "string"
+                    },
+                    {
+                      "name": "TokenIssuerType",
+                      "type": "string"
+                    },
+                    {
+                      "name": "UserAgent",
+                      "type": "string"
+                    },
+                    {
+                      "name": "UserDisplayName",
+                      "type": "string"
+                    },
+                    {
+                      "name": "UserId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "UserPrincipalName",
+                      "type": "string"
+                    },
+                    {
+                      "name": "AADTenantId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "UserType",
+                      "type": "string"
+                    },
+                    {
+                      "name": "FlaggedForReview",
+                      "type": "boolean"
+                    },
+                    {
+                      "name": "IPAddressFromResourceProvider",
+                      "type": "string"
+                    },
+                    {
+                      "name": "SignInIdentifier",
+                      "type": "string"
+                    },
+                    {
+                      "name": "SignInIdentifierType",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ResourceTenantId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "HomeTenantId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "UniqueTokenIdentifier",
+                      "type": "string"
+                    },
+                    {
+                      "name": "SessionId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "SessionLifetimePolicies",
+                      "type": "string"
+                    },
+                    {
+                      "name": "AutonomousSystemNumber",
+                      "type": "string"
+                    },
+                    {
+                      "name": "AuthenticationProtocol",
+                      "type": "string"
+                    },
+                    {
+                      "name": "CrossTenantAccessType",
+                      "type": "string"
+                    },
+                    {
+                      "name": "AuthenticationAppDeviceDetails",
+                      "type": "string"
+                    },
+                    {
+                      "name": "AuthenticationAppPolicyEvaluationDetails",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ClientCredentialType",
+                      "type": "string"
+                    },
+                    {
+                      "name": "FederatedCredentialId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "GlobalSecureAccessIpAddress",
+                      "type": "string"
+                    },
+                    {
+                      "name": "HomeTenantName",
+                      "type": "string"
+                    },
+                    {
+                      "name": "IncomingTokenType",
+                      "type": "string"
+                    },
+                    {
+                      "name": "IsTenantRestricted",
+                      "type": "boolean"
+                    },
+                    {
+                      "name": "IsThroughGlobalSecureAccess",
+                      "type": "boolean"
+                    },
+                    {
+                      "name": "OriginalTransferMethod",
+                      "type": "string"
+                    },
+                    {
+                      "name": "TokenProtectionStatusDetails",
+                      "type": "dynamic"
+                    },
+                    {
+                      "name": "AppOwnerTenantId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ResourceOwnerTenantId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "Agent",
+                      "type": "dynamic"
+                    },
+                    {
+                      "name": "SourceAppClientId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ConditionalAccessAudiences",
+                      "type": "string"
+                    },
+                    {
+                      "name": "AuthenticatorAppLocation",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ClientSessionId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "RootActorID",
+                      "type": "string"
+                    },
+                    {
+                      "name": "AppliedConditionalAccessPolicies",
+                      "type": "string"
+                    },
+                    {
+                      "name": "RiskLevel",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "condition": "[parameters('createAuditTable')]",
+              "type": "Microsoft.OperationalInsights/workspaces/tables",
+              "apiVersion": "2022-10-01",
+              "name": "[concat(parameters('workspaceName'), '/EntraAuditLogs_CL')]",
+              "properties": {
+                "plan": "Analytics",
+                "schema": {
+                  "name": "EntraAuditLogs_CL",
+                  "columns": [
+                    {
+                      "name": "SourceSystem",
+                      "type": "string"
+                    },
+                    {
+                      "name": "TimeGenerated",
+                      "type": "datetime"
+                    },
+                    {
+                      "name": "ResourceId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "OperationName",
+                      "type": "string"
+                    },
+                    {
+                      "name": "OperationVersion",
+                      "type": "string"
+                    },
+                    {
+                      "name": "Category",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ResultType",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ResultSignature",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ResultDescription",
+                      "type": "string"
+                    },
+                    {
+                      "name": "DurationMs",
+                      "type": "long"
+                    },
+                    {
+                      "name": "CorrelationId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "Resource",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ResourceGroup",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ResourceProvider",
+                      "type": "string"
+                    },
+                    {
+                      "name": "Identity",
+                      "type": "string"
+                    },
+                    {
+                      "name": "Level",
+                      "type": "string"
+                    },
+                    {
+                      "name": "Location",
+                      "type": "string"
+                    },
+                    {
+                      "name": "AdditionalDetails",
+                      "type": "dynamic"
+                    },
+                    {
+                      "name": "Id",
+                      "type": "string"
+                    },
+                    {
+                      "name": "InitiatedBy",
+                      "type": "dynamic"
+                    },
+                    {
+                      "name": "LoggedByService",
+                      "type": "string"
+                    },
+                    {
+                      "name": "Result",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ResultReason",
+                      "type": "string"
+                    },
+                    {
+                      "name": "TargetResources",
+                      "type": "dynamic"
+                    },
+                    {
+                      "name": "AADTenantId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ActivityDisplayName",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ActivityDateTime",
+                      "type": "datetime"
+                    },
+                    {
+                      "name": "AADOperationType",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[concat('entra-ingestion-', uniqueString(deployment().name))]",
+      "dependsOn": [
+        "[resourceId(variables('workspaceGroup'), 'Microsoft.Resources/deployments', concat('entra-tables-', uniqueString(deployment().name)))]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "parameters": {
+          "workspaceResourceId": {
+            "value": "[parameters('workspaceResourceId')]"
+          },
+          "dataCollectionEndpointName": {
+            "value": "[parameters('dataCollectionEndpointName')]"
+          },
+          "existingDataCollectionEndpointId": {
+            "value": "[parameters('existingDataCollectionEndpointId')]"
+          },
+          "dataCollectionRuleName": {
+            "value": "[parameters('dataCollectionRuleName')]"
+          },
+          "createSigninTable": {
+            "value": "[parameters('createSigninTable')]"
+          },
+          "createAuditTable": {
+            "value": "[parameters('createAuditTable')]"
+          },
+          "publicNetworkAccess": {
+            "value": "[parameters('publicNetworkAccess')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "workspaceLocation": {
+            "value": "[reference(parameters('workspaceResourceId'), '2022-10-01', 'Full').location]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "workspaceResourceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Required existing workspace resource ID in the selected subscription. Tables are deployed into its own resource group."
+              },
+              "minLength": 1
+            },
+            "dataCollectionEndpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name for a NEW  DCE. Ignored when reusing an existing DCE."
+              },
+              "minLength": 1,
+              "defaultValue": "dce-entra-cribl"
+            },
+            "existingDataCollectionEndpointId": {
+              "type": "string",
+              "metadata": {
+                "description": "Existing DCE resource ID, or empty to create a DCE. Preparation preserves an existing DCR's own DCE and overrides this selection."
+              },
+              "defaultValue": ""
+            },
+            "dataCollectionRuleName": {
+              "type": "string",
+              "metadata": {
+                "description": "New or existing  DCR name in the deployment resource group. For EXISTING resources use the preparation script; do not overwrite directly."
+              },
+              "minLength": 1,
+              "defaultValue": "dcr-entra-cribl"
+            },
+            "createSigninTable": {
+              "type": "bool",
+              "metadata": {
+                "description": "True only when EntraSigninLogs_CL is absent. False preserves its schema and retention."
+              },
+              "defaultValue": false
+            },
+            "createAuditTable": {
+              "type": "bool",
+              "metadata": {
+                "description": "True only when EntraAuditLogs_CL is absent. False preserves its schema and retention."
+              },
+              "defaultValue": false
+            },
+            "publicNetworkAccess": {
+              "type": "string",
+              "metadata": {
+                "description": "NEW DCE only. Disabled requires separately configured AMPLS, private endpoints and DNS. Enabled requires approval for public HTTPS ingestion."
+              },
+              "allowedValues": [
+                "Disabled",
+                "Enabled"
+              ],
+              "defaultValue": "Disabled"
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Tags for NEW DCE/DCR resources."
+              },
+              "defaultValue": {}
+            },
+            "workspaceLocation": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "workspaceGroup": "[split(parameters('workspaceResourceId'), '/')[4]]",
+            "workspaceName": "[last(split(parameters('workspaceResourceId'), '/'))]",
+            "newDceId": "[resourceId('Microsoft.Insights/dataCollectionEndpoints', parameters('dataCollectionEndpointName'))]",
+            "dceId": "[if(empty(parameters('existingDataCollectionEndpointId')), variables('newDceId'), parameters('existingDataCollectionEndpointId'))]",
+            "dcrId": "[resourceId('Microsoft.Insights/dataCollectionRules', parameters('dataCollectionRuleName'))]",
+            "fixedTables": [
+              "EntraSigninLogs_CL",
+              "EntraAuditLogs_CL"
+            ]
+          },
+          "resources": [
+            {
+              "condition": "[empty(parameters('existingDataCollectionEndpointId'))]",
+              "type": "Microsoft.Insights/dataCollectionEndpoints",
+              "apiVersion": "2023-03-11",
+              "name": "[parameters('dataCollectionEndpointName')]",
+              "location": "[parameters('workspaceLocation')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "description": "DCE for  Cribl Entra SignIn/Audit ingestion",
+                "networkAcls": {
+                  "publicNetworkAccess": "[parameters('publicNetworkAccess')]"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Insights/dataCollectionRules",
+              "apiVersion": "2023-03-11",
+              "name": "[parameters('dataCollectionRuleName')]",
+              "location": "[parameters('workspaceLocation')]",
+              "tags": "[parameters('tags')]",
+              "dependsOn": [
+                "[variables('newDceId')]"
+              ],
+              "properties": {
+                "description": "Cribl Entra SignIn/Audit records mapped to native-compatible custom tables",
+                "dataCollectionEndpointId": "[variables('dceId')]",
+                "streamDeclarations": {
+                  "Custom-EntraSigninRaw": {
+                    "columns": [
+                      {
+                        "name": "time",
+                        "type": "datetime"
+                      },
+                      {
+                        "name": "resourceId",
+                        "type": "string"
+                      },
+                      {
+                        "name": "operationName",
+                        "type": "string"
+                      },
+                      {
+                        "name": "operationVersion",
+                        "type": "string"
+                      },
+                      {
+                        "name": "category",
+                        "type": "string"
+                      },
+                      {
+                        "name": "tenantId",
+                        "type": "string"
+                      },
+                      {
+                        "name": "resultType",
+                        "type": "string"
+                      },
+                      {
+                        "name": "resultSignature",
+                        "type": "string"
+                      },
+                      {
+                        "name": "resultDescription",
+                        "type": "string"
+                      },
+                      {
+                        "name": "durationMs",
+                        "type": "long"
+                      },
+                      {
+                        "name": "callerIpAddress",
+                        "type": "string"
+                      },
+                      {
+                        "name": "correlationId",
+                        "type": "string"
+                      },
+                      {
+                        "name": "identity",
+                        "type": "string"
+                      },
+                      {
+                        "name": "level",
+                        "type": "string"
+                      },
+                      {
+                        "name": "location",
+                        "type": "string"
+                      },
+                      {
+                        "name": "properties",
+                        "type": "dynamic"
+                      }
+                    ]
+                  },
+                  "Custom-EntraAuditRaw": {
+                    "columns": [
+                      {
+                        "name": "time",
+                        "type": "datetime"
+                      },
+                      {
+                        "name": "resourceId",
+                        "type": "string"
+                      },
+                      {
+                        "name": "operationName",
+                        "type": "string"
+                      },
+                      {
+                        "name": "operationVersion",
+                        "type": "string"
+                      },
+                      {
+                        "name": "category",
+                        "type": "string"
+                      },
+                      {
+                        "name": "tenantId",
+                        "type": "string"
+                      },
+                      {
+                        "name": "resultType",
+                        "type": "string"
+                      },
+                      {
+                        "name": "resultSignature",
+                        "type": "string"
+                      },
+                      {
+                        "name": "resultDescription",
+                        "type": "string"
+                      },
+                      {
+                        "name": "durationMs",
+                        "type": "long"
+                      },
+                      {
+                        "name": "callerIpAddress",
+                        "type": "string"
+                      },
+                      {
+                        "name": "correlationId",
+                        "type": "string"
+                      },
+                      {
+                        "name": "identity",
+                        "type": "string"
+                      },
+                      {
+                        "name": "level",
+                        "type": "string"
+                      },
+                      {
+                        "name": "location",
+                        "type": "string"
+                      },
+                      {
+                        "name": "properties",
+                        "type": "dynamic"
+                      }
+                    ]
+                  }
+                },
+                "destinations": {
+                  "logAnalytics": [
+                    {
+                      "workspaceResourceId": "[parameters('workspaceResourceId')]",
+                      "name": "entraCriblWorkspace"
+                    }
+                  ]
+                },
+                "dataFlows": [
+                  {
+                    "streams": [
+                      "Custom-EntraSigninRaw"
+                    ],
+                    "destinations": [
+                      "entraCriblWorkspace"
+                    ],
+                    "transformKql": "source | extend SourceSystem = \"Azure AD\" | extend TimeGenerated = todatetime(['time']) | extend ResourceId = tostring(resourceId) | extend OperationName = tostring(operationName) | extend OperationVersion = tostring(operationVersion) | extend Category = tostring(category) | extend ResultType = tostring(resultType) | extend ResultSignature = tostring(resultSignature) | extend ResultDescription = tostring(resultDescription) | extend DurationMs = tolong(durationMs) | extend CorrelationId = tostring(correlationId) | extend Resource = \"Microsoft.aadiam\" | extend ResourceGroup = \"Microsoft.aadiam\" | extend ResourceProvider = \"\" | extend Identity = tostring(identity) | extend Level = tostring(level) | extend Location = tostring(location) | extend AlternateSignInName = tostring(properties.alternateSignInName) | extend AppDisplayName = tostring(properties.appDisplayName) | extend AppId = tostring(properties.appId) | extend AuthenticationContextClassReferences = tostring(properties.authenticationContextClassReferences) | extend AuthenticationDetails = tostring(properties.authenticationDetails) | extend AppliedEventListeners = properties.appliedEventListeners | extend AuthenticationMethodsUsed = tostring(properties.authenticationMethodsUsed) | extend AuthenticationProcessingDetails = tostring(properties.authenticationProcessingDetails) | extend AuthenticationRequirement = tostring(properties.authenticationRequirement) | extend AuthenticationRequirementPolicies = tostring(properties.authenticationRequirementPolicies) | extend ClientAppUsed = tostring(properties.clientAppUsed) | extend ConditionalAccessPolicies = properties.appliedConditionalAccessPolicies | extend ConditionalAccessStatus = tostring(properties.conditionalAccessStatus) | extend CreatedDateTime = todatetime(properties.createdDateTime) | extend DeviceDetail = properties.deviceDetail | extend IsInteractive = tobool(properties.isInteractive) | extend Id = tostring(properties.id) | extend IPAddress = tostring(properties.ipAddress) | extend IsRisky = tobool(properties.isRisky) | extend LocationDetails = properties.location | extend MfaDetail = properties.mfaDetail | extend NetworkLocationDetails = tostring(properties.networkLocationDetails) | extend OriginalRequestId = tostring(properties.originalRequestId) | extend ProcessingTimeInMilliseconds = tostring(properties.processingTimeInMilliseconds) | extend RiskDetail = tostring(properties.riskDetail) | extend RiskEventTypes = tostring(properties.riskEventTypes) | extend RiskEventTypes_V2 = tostring(properties.riskEventTypes_v2) | extend RiskLevelAggregated = tostring(properties.riskLevelAggregated) | extend RiskLevelDuringSignIn = tostring(properties.riskLevelDuringSignIn) | extend RiskState = tostring(properties.riskState) | extend ResourceDisplayName = tostring(properties.resourceDisplayName) | extend ResourceIdentity = tostring(properties.resourceId) | extend ResourceServicePrincipalId = tostring(properties.resourceServicePrincipalId) | extend ServicePrincipalId = tostring(properties.servicePrincipalId) | extend ServicePrincipalName = tostring(properties.servicePrincipalName) | extend Status = properties.status | extend TokenIssuerName = tostring(properties.tokenIssuerName) | extend TokenIssuerType = tostring(properties.tokenIssuerType) | extend UserAgent = tostring(properties.userAgent) | extend UserDisplayName = tostring(properties.userDisplayName) | extend UserId = tostring(properties.userId) | extend UserPrincipalName = tostring(properties.userPrincipalName) | extend AADTenantId = tostring(tenantId) | extend UserType = tostring(properties.userType) | extend FlaggedForReview = tobool(properties.flaggedForReview) | extend IPAddressFromResourceProvider = tostring(properties.ipAddressFromResourceProvider) | extend SignInIdentifier = tostring(properties.signInIdentifier) | extend SignInIdentifierType = tostring(properties.signInIdentifierType) | extend ResourceTenantId = tostring(properties.resourceTenantId) | extend HomeTenantId = tostring(properties.homeTenantId) | extend UniqueTokenIdentifier = tostring(properties.uniqueTokenIdentifier) | extend SessionId = tostring(properties.sessionId) | extend SessionLifetimePolicies = tostring(properties.sessionLifetimePolicies) | extend AutonomousSystemNumber = tostring(properties.autonomousSystemNumber) | extend AuthenticationProtocol = tostring(properties.authenticationProtocol) | extend CrossTenantAccessType = tostring(properties.crossTenantAccessType) | extend AuthenticationAppDeviceDetails = tostring(properties.authenticationAppDeviceDetails) | extend AuthenticationAppPolicyEvaluationDetails = tostring(properties.authenticationAppPolicyEvaluationDetails) | extend ClientCredentialType = tostring(properties.clientCredentialType) | extend FederatedCredentialId = tostring(properties.federatedCredentialId) | extend GlobalSecureAccessIpAddress = tostring(properties.globalSecureAccessIpAddress) | extend HomeTenantName = tostring(properties.homeTenantName) | extend IncomingTokenType = tostring(properties.incomingTokenType) | extend IsTenantRestricted = tobool(properties.isTenantRestricted) | extend IsThroughGlobalSecureAccess = tobool(properties.isThroughGlobalSecureAccess) | extend OriginalTransferMethod = tostring(properties.originalTransferMethod) | extend TokenProtectionStatusDetails = properties.tokenProtectionStatusDetails | extend AppOwnerTenantId = tostring(properties.appOwnerTenantId) | extend ResourceOwnerTenantId = tostring(properties.resourceOwnerTenantId) | extend Agent = properties.agent | extend SourceAppClientId = tostring(properties.sourceAppClientId) | extend ConditionalAccessAudiences = tostring(properties.conditionalAccessAudiences) | extend AuthenticatorAppLocation = tostring(properties.authenticatorAppLocation) | extend ClientSessionId = tostring(properties.clientSessionId) | extend RootActorID = tostring(properties.rootActorId) | extend AppliedConditionalAccessPolicies = \"\" | extend RiskLevel = tostring(properties.riskLevel) | project SourceSystem, TimeGenerated, ResourceId, OperationName, OperationVersion, Category, ResultType, ResultSignature, ResultDescription, DurationMs, CorrelationId, Resource, ResourceGroup, ResourceProvider, Identity, Level, Location, AlternateSignInName, AppDisplayName, AppId, AuthenticationContextClassReferences, AuthenticationDetails, AppliedEventListeners, AuthenticationMethodsUsed, AuthenticationProcessingDetails, AuthenticationRequirement, AuthenticationRequirementPolicies, ClientAppUsed, ConditionalAccessPolicies, ConditionalAccessStatus, CreatedDateTime, DeviceDetail, IsInteractive, Id, IPAddress, IsRisky, LocationDetails, MfaDetail, NetworkLocationDetails, OriginalRequestId, ProcessingTimeInMilliseconds, RiskDetail, RiskEventTypes, RiskEventTypes_V2, RiskLevelAggregated, RiskLevelDuringSignIn, RiskState, ResourceDisplayName, ResourceIdentity, ResourceServicePrincipalId, ServicePrincipalId, ServicePrincipalName, Status, TokenIssuerName, TokenIssuerType, UserAgent, UserDisplayName, UserId, UserPrincipalName, AADTenantId, UserType, FlaggedForReview, IPAddressFromResourceProvider, SignInIdentifier, SignInIdentifierType, ResourceTenantId, HomeTenantId, UniqueTokenIdentifier, SessionId, SessionLifetimePolicies, AutonomousSystemNumber, AuthenticationProtocol, CrossTenantAccessType, AuthenticationAppDeviceDetails, AuthenticationAppPolicyEvaluationDetails, ClientCredentialType, FederatedCredentialId, GlobalSecureAccessIpAddress, HomeTenantName, IncomingTokenType, IsTenantRestricted, IsThroughGlobalSecureAccess, OriginalTransferMethod, TokenProtectionStatusDetails, AppOwnerTenantId, ResourceOwnerTenantId, Agent, SourceAppClientId, ConditionalAccessAudiences, AuthenticatorAppLocation, ClientSessionId, RootActorID, AppliedConditionalAccessPolicies, RiskLevel",
+                    "outputStream": "Custom-EntraSigninLogs_CL"
+                  },
+                  {
+                    "streams": [
+                      "Custom-EntraAuditRaw"
+                    ],
+                    "destinations": [
+                      "entraCriblWorkspace"
+                    ],
+                    "transformKql": "source | extend SourceSystem = \"Azure AD\" | extend TimeGenerated = todatetime(['time']) | extend ResourceId = tostring(resourceId) | extend OperationName = tostring(operationName) | extend OperationVersion = tostring(operationVersion) | extend Category = tostring(properties.category) | extend ResultType = tostring(resultType) | extend ResultSignature = tostring(resultSignature) | extend ResultDescription = tostring(resultDescription) | extend DurationMs = tolong(durationMs) | extend CorrelationId = tostring(correlationId) | extend Resource = \"Microsoft.aadiam\" | extend ResourceGroup = \"Microsoft.aadiam\" | extend ResourceProvider = \"\" | extend Identity = tostring(identity) | extend Level = tostring(level) | extend Location = tostring(location) | extend AdditionalDetails = properties.additionalDetails | extend Id = tostring(properties.id) | extend InitiatedBy = properties.initiatedBy | extend LoggedByService = tostring(properties.loggedByService) | extend Result = tostring(properties.result) | extend ResultReason = tostring(properties.resultReason) | extend TargetResources = properties.targetResources | extend AADTenantId = tostring(tenantId) | extend ActivityDisplayName = tostring(properties.activityDisplayName) | extend ActivityDateTime = todatetime(properties.activityDateTime) | extend AADOperationType = tostring(properties.operationType) | project SourceSystem, TimeGenerated, ResourceId, OperationName, OperationVersion, Category, ResultType, ResultSignature, ResultDescription, DurationMs, CorrelationId, Resource, ResourceGroup, ResourceProvider, Identity, Level, Location, AdditionalDetails, Id, InitiatedBy, LoggedByService, Result, ResultReason, TargetResources, AADTenantId, ActivityDisplayName, ActivityDateTime, AADOperationType",
+                    "outputStream": "Custom-EntraAuditLogs_CL"
+                  }
+                ]
+              }
+            }
+          ],
+          "outputs": {
+            "tables": {
+              "type": "array",
+              "value": "[variables('fixedTables')]"
+            },
+            "workspaceResourceId": {
+              "type": "string",
+              "value": "[parameters('workspaceResourceId')]"
+            },
+            "region": {
+              "type": "string",
+              "value": "[parameters('workspaceLocation')]"
+            },
+            "dcrResourceId": {
+              "type": "string",
+              "value": "[variables('dcrId')]"
+            },
+            "dcrImmutableId": {
+              "type": "string",
+              "value": "[reference(variables('dcrId'), '2023-03-11').immutableId]"
+            },
+            "dceResourceId": {
+              "type": "string",
+              "value": "[variables('dceId')]"
+            },
+            "logsIngestionEndpoint": {
+              "type": "string",
+              "value": "[reference(variables('dceId'), '2023-03-11').logsIngestion.endpoint]"
+            },
+            "signinStreamName": {
+              "type": "string",
+              "value": "Custom-EntraSigninRaw"
+            },
+            "signinIngestionUrl": {
+              "type": "string",
+              "value": "[concat(reference(variables('dceId'), '2023-03-11').logsIngestion.endpoint, '/dataCollectionRules/', reference(variables('dcrId'), '2023-03-11').immutableId, '/streams/Custom-EntraSigninRaw?api-version=2023-01-01')]"
+            },
+            "auditStreamName": {
+              "type": "string",
+              "value": "Custom-EntraAuditRaw"
+            },
+            "auditIngestionUrl": {
+              "type": "string",
+              "value": "[concat(reference(variables('dceId'), '2023-03-11').logsIngestion.endpoint, '/dataCollectionRules/', reference(variables('dcrId'), '2023-03-11').immutableId, '/streams/Custom-EntraAuditRaw?api-version=2023-01-01')]"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "tables": {
+      "type": "array",
+      "value": "[reference(concat('entra-ingestion-', uniqueString(deployment().name))).outputs.tables.value]"
+    },
+    "workspaceResourceId": {
+      "type": "string",
+      "value": "[reference(concat('entra-ingestion-', uniqueString(deployment().name))).outputs.workspaceResourceId.value]"
+    },
+    "region": {
+      "type": "string",
+      "value": "[reference(concat('entra-ingestion-', uniqueString(deployment().name))).outputs.region.value]"
+    },
+    "dcrResourceId": {
+      "type": "string",
+      "value": "[reference(concat('entra-ingestion-', uniqueString(deployment().name))).outputs.dcrResourceId.value]"
+    },
+    "dcrImmutableId": {
+      "type": "string",
+      "value": "[reference(concat('entra-ingestion-', uniqueString(deployment().name))).outputs.dcrImmutableId.value]"
+    },
+    "dceResourceId": {
+      "type": "string",
+      "value": "[reference(concat('entra-ingestion-', uniqueString(deployment().name))).outputs.dceResourceId.value]"
+    },
+    "logsIngestionEndpoint": {
+      "type": "string",
+      "value": "[reference(concat('entra-ingestion-', uniqueString(deployment().name))).outputs.logsIngestionEndpoint.value]"
+    },
+    "signinStreamName": {
+      "type": "string",
+      "value": "[reference(concat('entra-ingestion-', uniqueString(deployment().name))).outputs.signinStreamName.value]"
+    },
+    "signinIngestionUrl": {
+      "type": "string",
+      "value": "[reference(concat('entra-ingestion-', uniqueString(deployment().name))).outputs.signinIngestionUrl.value]"
+    },
+    "auditStreamName": {
+      "type": "string",
+      "value": "[reference(concat('entra-ingestion-', uniqueString(deployment().name))).outputs.auditStreamName.value]"
+    },
+    "auditIngestionUrl": {
+      "type": "string",
+      "value": "[reference(concat('entra-ingestion-', uniqueString(deployment().name))).outputs.auditIngestionUrl.value]"
+    }
+  }
+}
